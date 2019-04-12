@@ -10,11 +10,13 @@
 
     `git merge` 是在本地 merge，用 `git push` 会同步到远端，但是没有 PR 记录。
 
-    直接在远端 PR 会有记录。
+    直接在远端 PR 会有记录，但是需要 `git pull` 同步到本地。
+
+    不管是在本地 `merge` 还是在远端 PR，都会改变版本号。
 
   + .git 会根据当前分支显示不同的目录。（神奇）
 
 + 注意在远端 default branch 要设为 master （repo Settings -> Branches 里）
 
-##### Last-modified date: 2019.4.11, 10 p.m.
+##### Last-modified date: 2019.4.12, 3 p.m.
 
