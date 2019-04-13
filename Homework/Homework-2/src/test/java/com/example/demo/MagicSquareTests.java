@@ -8,13 +8,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class DemoApplicationTests {
+public class MagicSquareTests {
 
     @Test
     public void testGenerate() {
         int order = 5;
         try {
-            MagicSquare ms = new MagicSquare(order);
+            MagicSquare ms = new MagicSquare(order, true);
             int[][] square = ms.generate();
             int sum = 0;
             for (int i = 0; i < order; i++)

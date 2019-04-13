@@ -17,10 +17,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                    .anyRequest().permitAll()
-                    .and()
+                    .anyRequest().permitAll();
+                    /*.and()
                 .formLogin()
                     .loginPage("/login")
-                    .permitAll();
+                    .permitAll();*/
+    }
+
+    @Bean
+    @Override
+    public UserDetailsService userDetailsService() {
+        UserDetails user =
+                User.withDefaultPasswordEncoder()
+                        .username("auth")
+                        .password("password")
+                        .roles("AUTH")
+                        .build();
+
+        return new InMemoryUserDetailsManager(user);
     }
 }
