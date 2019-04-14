@@ -21,5 +21,7 @@
 
 + 在资源文件中可以通过设置 `management.endpoints.web.exposure.include` 来选择暴露出哪些端点。
 
-##### Last-modified date: 2019.4.13, 10 a.m. 
++ java 比较两个字符串时候相等要用 `equals` 方法（比较内容），不能用 `==` （比较地址）。
+
+##### Last-modified date: 2019.4.13, 4 p.m. 
 

@@ -8,15 +8,19 @@ public class MagicSquare {
     private int[][] square;
     private String error = "";
 
-    public MagicSquare(int order){
-        if (order <= 0)
-            this.error = "Order should be positive!";
-        else if (order % 2 == 0)
-            this.error = "Order should be odd!";
+    public MagicSquare(int order, boolean auth){
+        if (!auth)
+            this.error = "Authentication failed!";
         else {
-            this.order = order;
-            this.square = new int[order][order];
-            this.generate();
+            if (order <= 0)
+                this.error = "Order should be positive!";
+            else if (order % 2 == 0)
+                this.error = "Order should be odd!";
+            else {
+                this.order = order;
+                this.square = new int[order][order];
+                this.generate();
+            }
         }
     }
 
