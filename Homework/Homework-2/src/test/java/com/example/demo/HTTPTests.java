@@ -66,4 +66,5 @@ public class HTTPTests {
                 .andExpect(jsonPath("$.message").value("Order should be positive!"))
                 .andExpect(jsonPath("$.square.length()").isEmpty());
     }
+
 }

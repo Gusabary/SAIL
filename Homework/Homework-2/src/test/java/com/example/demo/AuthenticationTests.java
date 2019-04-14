@@ -41,4 +41,12 @@ public class AuthenticationTests {
                 .andDo(print())
                 .andExpect(jsonPath("$.message").value("Authentication failed!"));
     }
+
+    @Test
+    public void nonAuthTest() throws Exception {
+        this.mockMvc.perform(get("/magicSquare?order=3"))
+                .andDo(print())
+                .andExpect(jsonPath("$.message").value("Authentication failed!"));
+    }
+
 }
