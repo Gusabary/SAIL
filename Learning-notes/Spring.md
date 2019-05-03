@@ -6,6 +6,7 @@
 + [Consuming a RESTful Web Service](<https://spring.io/guides/gs/consuming-rest/>) 使用服务
 + [Testing the Web Layer](<https://spring.io/guides/gs/testing-web/>) 测试
 + [Spring Boot Actuator](<https://spring.io/guides/gs/actuator-service/>) Actuator
++ [Routing and Filtering](<https://spring.io/guides/gs/routing-and-filtering/>) Microservice
 
 ### Notes
 
@@ -23,5 +24,5 @@
 
 + java 比较两个字符串时候相等要用 `equals` 方法（比较内容），不能用 `==` （比较地址）。
 
-##### Last-modified date: 2019.4.13, 4 p.m. 
+##### Last-modified date: 2019.5.3, 4 p.m. 
 
