@@ -2,9 +2,7 @@
 
 ## Requirements
 
->+ Split your REST Service of Homework-2 into two microservices:
->  + login
->  + function
+>+ Split your REST Service of Homework-2 into two microservices: login and function
 >+ Dockerize the two microservices
 
 ## Dockerization
