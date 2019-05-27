@@ -24,5 +24,7 @@
 
 + java 比较两个字符串时候相等要用 `equals` 方法（比较内容），不能用 `==` （比较地址）。
 
-##### Last-modified date: 2019.5.3, 4 p.m. 
++ @Autowired 进来的属性为 null 解决方案：将该属性所属的类注解为 @Component，并在依赖该类的类中 @Autowired 该类，而不要用 new 去创建。
+
+##### Last-modified date: 2019.5.27, 9 p.m. 
 
