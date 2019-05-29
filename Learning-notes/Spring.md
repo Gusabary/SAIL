@@ -26,5 +26,12 @@
 
 + @Autowired 进来的属性为 null 解决方案：将该属性所属的类注解为 @Component，并在依赖该类的类中 @Autowired 该类，而不要用 new 去创建。
 
-##### Last-modified date: 2019.5.27, 9 p.m. 
++ Spring Security 在配置 Config 的时候，记得加上
+
+  ```java
+  .csrf().disable()
+  .cors().and()
+  ```
+
+##### Last-modified date: 2019.5.29, 4 p.m. 
 
