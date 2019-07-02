@@ -61,5 +61,23 @@
 
   4. 第 4 步之后和第一次工作时一样
 
-##### Last-modified date: 2019.5.11, 5 p.m.
++ 标签 / tag
+
+  + `git tag` 查看所有标签
+
+  + 标签分轻量级的和含注解的，
+
+    创建轻量级标签，使用 `git tag v1.0`，
+
+    创建含注解标签，使用 `git tag -a v1.0 -m"message"`
+
+  + 后期加注标签：`git tag -a v1.0 -m"message" 9fceb02`, `9fceb02` 是代指 commit ID 的前几位，可以用 `git log` 查看历史 commit，获取想要打上标签的那个 commit 的 ID。
+
+  + 推送标签：
+
+    推送单个：`git push v1.0` ，
+
+    推送所有：`git push --tags `
+
+##### Last-modified date: 2019.7.2, 10 p.m.
 
