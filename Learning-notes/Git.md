@@ -75,9 +75,9 @@
 
   + 推送标签：
 
-    推送单个：`git push v1.0` ，
+    推送单个：`git push origin v1.0` ，（不加 origin 的话语法上是 push 到 *v1.0* 这个仓库）
 
     推送所有：`git push --tags `
 
-##### Last-modified date: 2019.7.2, 10 p.m.
+##### Last-modified date: 2019.7.2, 11 p.m.
 
