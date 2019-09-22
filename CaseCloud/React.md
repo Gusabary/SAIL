@@ -42,4 +42,10 @@
 
   因为如果 `/d` 也指定 exact 的话，当访问 `/a/d/e` 时，从 `/a` 是 route 不到 `/a/d` 的，也就 route 不到 `/a/d/e`。
 
-##### Last-modified date: 2019.9.16, 6 p.m.
+## CSS
+
++ 与 RN 不同的是，想要让一个容器内的盒子（使用 flex 属性）弹性排列，需要在容器中指定 `display: flex`，且 `flexDirection` 默认值为 `row`。
++ 当容器内的盒子溢出时，使用 `flexWrap: wrap` 解决这一问题。
++ 与 RN 不同的是，想让一个盒子显示边界要指定 `borderStyle: "solid"` 而不是 `borderWidth: 1`。
+
+##### Last-modified date: 2019.9.18, 3 p.m.

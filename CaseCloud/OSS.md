@@ -25,4 +25,22 @@
   - Endpoint：Bucket所在数据中心的访问域名，您需要填写外网Endpoint
   - Object：上传到OSS上的文件的访问路径
 
-##### Last-modified date: 2019.9.17, 8 p.m.
++ 浏览器中使用`signatureUrl`方法生成可下载的HTTP地址，URL的有效时间默认为半个小时。
+
++ 通过`list`来列出当前Bucket下的所有文件：
+
+  ```js
+  let result = await client.list({
+      prefix: dir,    // dir 是当前目录名
+      delimiter: '/'  // 目录用 / 分隔
+  });
+  
+  result.prefixes.forEach(function (subDir) {  // prefixes 是当前目录下有'/'的项，即子目录
+      console.log('SubDir: %s', subDir);
+  });
+  result.objects.forEach(function (obj) {      // objects 是当前目录下没有'/'的项，即一般文件
+      console.log('Object: %s', obj.name);
+  });
+  ```
+
+##### Last-modified date: 2019.9.21, 7 p.m.
