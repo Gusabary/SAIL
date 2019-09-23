@@ -48,4 +48,8 @@
 + 当容器内的盒子溢出时，使用 `flexWrap: wrap` 解决这一问题。
 + 与 RN 不同的是，想让一个盒子显示边界要指定 `borderStyle: "solid"` 而不是 `borderWidth: 1`。
 
-##### Last-modified date: 2019.9.18, 3 p.m.
+## Formik
+
++ 点 submit 没有反应，onSubmit 回调函数不执行，很有可能是 schema 写的有问题，因为 formik 在执行 onSubmit 回调函数之前会先检查一下是否满足 schema 的要求，如果不满足就不执行回调。
+
+##### Last-modified date: 2019.9.23, 11 a.m.
