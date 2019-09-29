@@ -52,4 +52,10 @@
 
 + 点 submit 没有反应，onSubmit 回调函数不执行，很有可能是 schema 写的有问题，因为 formik 在执行 onSubmit 回调函数之前会先检查一下是否满足 schema 的要求，如果不满足就不执行回调。
 
-##### Last-modified date: 2019.9.23, 11 a.m.
+  schema 写的有问题是指字段名写错或者多写了某个字段。
+
+## Other
+
++ `git checkout ${branch}` 切换完分支后需要重新 `yarn start` ，否则可能出现编译不通过的问题。
+
+##### Last-modified date: 2019.9.27, 11 p.m.
