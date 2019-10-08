@@ -2,9 +2,26 @@
 
 每个 API 对象都有 3 大类属性：元数据 metadata、规范 spec 和状态 status。元数据是用来标识 API 对象的，每个对象都至少有 3 个元数据：namespace，name 和 uid
 
+## Pod
+
++ Some Pods have init containers as well as app containers. Init containers run and complete before the app containers are started.
+
 ## Service
 
 + 不指定 targetPort 的情况下，默认是和 port 一样的端口
+
+## Label
+
++ Valid label keys have two segments: an optional prefix and name, separated by a slash (`/`).
+
++ > Labels can be used to select objects and to find collections of objects that satisfy certain conditions. In contrast, annotations are not used to identify and select objects.
+
+  `label` 主要用来选择 k8 中的 object，`annotaion` 主要用来对 object 做一些解释。
+
+## Namespace
+
++ If you want to reach across namespaces, you need to use the fully qualified domain name (FQDN).
++ PV 是全局资源，不属于任何一个 namespace，但是 PVC 属于某一 namespace
 
 ## Secret
 
@@ -37,4 +54,15 @@ k8 会在每个 namespace 创建一个名为 `default` 的默认 sa 。
 kubectl exec -it curl-pod -- curl httpbin-svc
 ```
 
-##### Last-modified date: 2019.10.5, 8 p.m.
+### CrashLoopBackOff
+
+创建一个 `deployment` 后，`pod` 总是处于 `CrashLoopBackOff` 状态并不断重启，原因是 `pod` 中容器挂了，容器挂了不仅仅可能是因为出错，也有可能是正常退出（exit code = 0），可以通过一个长状态的容器来检测：
+
+```yaml
+containers:
+- name: ubuntu
+  image: ubuntu
+  command: [ "/bin/bash", "-ce", "tail -f /dev/null" ]
+```
+
+##### Last-modified date: 2019.10.6, 9 p.m.
