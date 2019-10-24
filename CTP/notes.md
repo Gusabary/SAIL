@@ -20,7 +20,7 @@
 
 ## ptrace / syscall
 
-+ 子进程因为设置了 `PTRACE_TRACEME` 而在执行系统调用被系统停止 （状态设置为TASK_TRACED）
++ 子进程因为设置了 `PTRACE_TRACEME` 而在执行系统调用时被系统停止 （状态设置为 TASK_TRACED）
 
 + clone 和 fork 类似，也是调用一次返回两次，父进程返回子进程 id，子进程返回 0
 
@@ -44,6 +44,19 @@
   ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags);  // @return: =sendto
   ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags);  // @return: =recvfrom
   int shutdown(int sockfd, int how);  // @return: 0-success, -1-error
+  int bind(int sockfd, const struct sockaddr *addr, 
+           	socklen_t addrlen);  // @return: 0-success, -1-error
+  int listen(int sockfd, int backlog);  // @return: 0-success, -1-error
+  int getsockname(int sockfd, struct sockaddr *addr, 
+              socklen_t *addrlen);  // @return: 0-success, -1-error
+  int getpeername(int sockfd, struct sockaddr *addr, 
+              socklen_t *addrlen);  // @return: 0-success, -1-error
+  int socketpair(int domain, int type, int protocol, 
+              int sv[2]);  // @return: 0-success, -1-error
+  int setsockopt(int sockfd, int level, int optname,
+              const void *optval, socklen_t optlen);  // @return: 0-success, -1-error
+  int getsockopt(int sockfd, int level, int optname,
+              void *optval, socklen_t *optlen);  // @return: 0-success, -1-error
   ```
 
 ## lsof
@@ -51,4 +64,4 @@
 + 当你给它传递选项时，默认行为是对结果进行 “或” 运算。
 + 因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。
 
-##### Last-modified date: 2019.10.23, 9 p.m.
+##### Last-modified date: 2019.10.24, 10 p.m.
