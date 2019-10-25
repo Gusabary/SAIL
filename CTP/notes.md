@@ -24,6 +24,10 @@
 
 + clone 和 fork 类似，也是调用一次返回两次，父进程返回子进程 id，子进程返回 0
 
+  > A process has five fundamental parts: code ("text"), data (VM), stack, file I/O, and signal tables.
+
+  fork 出来的进程只共享 code，而利用 clone 可以对创建出来的进程的资源共享有更精细的控制。
+
 + 网络相关 system call:
 
   ```c++
@@ -64,4 +68,4 @@
 + 当你给它传递选项时，默认行为是对结果进行 “或” 运算。
 + 因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。
 
-##### Last-modified date: 2019.10.24, 10 p.m.
+##### Last-modified date: 2019.10.25, 11 a.m.
