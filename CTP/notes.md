@@ -93,4 +93,15 @@
 
 + 依赖最好不要重复 include，即 a include b,c ，b include c
 
-##### Last-modified date: 2019.11.10, 3 p.m.
++ ```c++
+  #include <a>
+  #include <b>
+  ```
+
+  上面的 include 会影响下面的，如果在 a 中定义了一个全局宏，b 也会受到影响（宏是直接替换）
+
+## Git
+
++ github 判断用户是谁是通过邮箱来判断的，ssh keys 只负责判断用户有没有权限读写某个仓库，可以用 `git config --local user.email ${email}` 来修改使用哪个邮箱。
+
+##### Last-modified date: 2019.11.10, 9 p.m.
