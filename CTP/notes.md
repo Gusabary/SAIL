@@ -91,4 +91,6 @@
 
   对于第一位为 1 的 byte，char 和 unsigned char 会由于符号位的缘故产生神秘的错误，所以存储 byte 的话最好还是用 unsigned char。
 
-##### Last-modified date: 2019.11.10, 1 p.m.
++ 依赖最好不要重复 include，即 a include b,c ，b include c
+
+##### Last-modified date: 2019.11.10, 3 p.m.
