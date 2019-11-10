@@ -68,4 +68,27 @@
 + 当你给它传递选项时，默认行为是对结果进行 “或” 运算。
 + 因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。
 
-##### Last-modified date: 2019.10.25, 11 a.m.
+## C++
+
++ char vs. unsigned char
+
+  ```c++
+  char c = 0x80;
+  unsigned char uc = 0x80;
+  
+  printf("%x\n", c);
+  printf("%x\n", uc);
+  if (c == 0x80)
+      printf("yes\n");
+  else
+      printf("no\n");
+  
+  // output:
+  // ffffff80
+  // 80
+  // no
+  ```
+
+  对于第一位为 1 的 byte，char 和 unsigned char 会由于符号位的缘故产生神秘的错误，所以存储 byte 的话最好还是用 unsigned char。
+
+##### Last-modified date: 2019.11.10, 1 p.m.
