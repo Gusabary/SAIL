@@ -102,6 +102,6 @@
 
 ## Git
 
-+ github 判断用户是谁是通过邮箱来判断的，ssh keys 只负责判断用户有没有权限读写某个仓库，可以用 `git config --local user.email ${email}` 来修改使用哪个邮箱。
++ github 判断用户是谁是通过邮箱来判断的，ssh keys 只负责判断用户有没有权限读写某个仓库，可以用 `git config --global user.email ${email}` 来修改使用哪个邮箱，然后用 `git commit --amend --reset-author` 来修改最近一次提交。
 
-##### Last-modified date: 2019.11.10, 9 p.m.
+##### Last-modified date: 2019.11.13, 10 a.m.
