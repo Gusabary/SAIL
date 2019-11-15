@@ -91,14 +91,36 @@
 
   对于第一位为 1 的 byte，char 和 unsigned char 会由于符号位的缘故产生神秘的错误，所以存储 byte 的话最好还是用 unsigned char。
 
-+ 依赖最好不要重复 include，即 a include b,c ，b include c
-
 + ```c++
   #include <a>
   #include <b>
   ```
 
   上面的 include 会影响下面的，如果在 a 中定义了一个全局宏，b 也会受到影响（宏是直接替换）
+
++ 堆 vs. 栈
+
+  ```c++
+  char *p;
+  {
+      char tmp[size];  // 此时 tmp 分配在栈上，地址差不多是 0x7ffe54525f70 这样
+      strcmp("123", tmp);
+      p = tmp;  
+  	printf("%s\n", p);  // 可以正确打印出 tmp 的内容
+  }
+  printf("%s\n", p);  // 离开 tmp 的作用域后，tmp 被释放，p 变成了悬空指针
+  ```
+
+  ```c++
+  // tmp 是类的成员变量，分配在堆上，地址差不多是 0x207e4c0 这样
+  char *p;
+  {
+      strcmp("123", tmp);
+      p = tmp;
+      printf("%s\n", p);  // 可以正确打印出 tmp 的内容
+  }
+  printf("%s\n", p);  // 仍然可以正确打印出 tmp 的内容
+  ```
 
 ## Git
 
