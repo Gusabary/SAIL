@@ -67,6 +67,7 @@
 
 + 当你给它传递选项时，默认行为是对结果进行 “或” 运算。
 + 因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。
++ lsof 的输出中 FD 字段表示打开文件的 fd，格式为一个数字（fd）加上一个字母，字母表示该文件的读写模式（例如 u 表示可读可写）；TYPE 字段表示打开的文件类型，REG 为文件，DIR 为目录，CHR 为字符设备（fd = 0, 1, 2），BLK 为块设备。
 
 ## C++
 
@@ -127,4 +128,4 @@
 
 + github 判断用户是谁是通过邮箱来判断的，ssh keys 只负责判断用户有没有权限读写某个仓库，可以用 `git config --global user.email ${email}` 来修改使用哪个邮箱，然后用 `git commit --amend --reset-author` 来修改最近一次提交。
 
-##### Last-modified date: 2019.11.15, 11 a.m.
+##### Last-modified date: 2019.11.20, 10 a.m.
