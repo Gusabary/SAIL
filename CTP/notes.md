@@ -18,6 +18,18 @@
 
 + 使用 POSIX thread 函数时，不仅要 `#include <pthread.h>`，还要在 gcc 链接时加上 `-pthread` （可能还要下载 pthread），POSIX 线程的概念是基于用户态的，gettid systemcall 这类线程是基于内核态的。[了解更多](<https://www.cnblogs.com/luntai/p/6184156.html>)
 
++ `/proc` 文件系统中 `/proc/[pid]/fd` 目录下的 `socket:[inode]` 这种软链接，方括号中是 inode number，在 `/proc/[pid]/net` 目录下可以看到三个文件 `raw`, `tcp` 以及 `udp`，分别为三种不同类型的网络连接，以 `tcp` 为例：
+
+  ```bash
+  $ cat tcp
+  sl  local_address  rem_address  .....  inode
+  20: 1000000A:AFB6  BB92A8B4:277E ...  54138358
+  ```
+
+  其中 `local_address` 和 `rem_address` 字段分别表示本地和远端套接字的地址（ip + 端口），要注意的是 ip 部分是**反序**（BB92A8B4 表示 B4.A8.92.BB 即 180.168.146.187）而端口部分是**正序**（277E 表示 10110）。
+
+  所以 `fd` 目录下出现的 socket 软链接可以在 `net` 目录下查看到连接的地址。
+
 ## ptrace / syscall
 
 + 子进程因为设置了 `PTRACE_TRACEME` 而在执行系统调用时被系统停止 （状态设置为 TASK_TRACED）
@@ -128,4 +140,4 @@
 
 + github 判断用户是谁是通过邮箱来判断的，ssh keys 只负责判断用户有没有权限读写某个仓库，可以用 `git config --global user.email ${email}` 来修改使用哪个邮箱，然后用 `git commit --amend --reset-author` 来修改最近一次提交。
 
-##### Last-modified date: 2019.11.20, 10 a.m.
+##### Last-modified date: 2020.1.11, 7 p.m.
