@@ -53,4 +53,21 @@
 
   当然如果指定了 traceexec，那么子进程 exec 时显然是会收到一个带有 exec event 信息的 SIGTRAP 信号的
 
-##### Last-modified date: 2020.2.12, 3 p.m.
++ `openat` syscall 额外接受一个 fd 作为入参，当 filepath 参数为相对路径时，可以打开相对于 fd 所指的目录的文件，特别地，当 fd 为 `AT_FDCWD` 时，所指的目录为当前目录。（可以用 `opendir` + `dirfd` 来获取到目录的 fd，`opendir` 本质上是带 O_DIRECTORY 选项的 `open`，但是只建议在 `opendir` 中使用）
+
+  设计以 at 为后缀的 syscall 大多有两个目的：
+
+  + 避免竞争，当 open 一个多级目录下的文件时，某一级的目录名可能会被更改，如果先 open 那个目录得到 fd 再 openat，可以避免这一竞争
+  + 实现线程粒度的“当前工作目录”，cwd 的概念是对应进程而言的，要实现线程级别的 cwd，可以让每个线程对应一个目录的 fd 即可
+
++ 一些和文件系统相关的 syscall：
+
+  + `lseek` 调整文件指针
+  + `stat` 获取文件 metadata（追随 symlink），`lstat` 不追随 symlink，`fstat` 接受 fd 作为入参
+  + `access` 检查文件 mode
+  + `umask` 设置创建文件的 mode 掩码，但是仍然可以通过 `chmod` 强行更改
+  + `utimes` 获取文件的 atime 和 mtime
+
++ c++ 中派生类不能直接初始化基类的成员，而应该调用基类的构造函数。
+
+##### Last-modified date: 2020.2.13, 2 p.m.
