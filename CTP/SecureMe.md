@@ -80,4 +80,44 @@
 
   当然，还有另外一种方法不用继承也不用虚函数，可以用模板，此时 mock 出的 C 和 B 没有关系，需要注意的是 A 是一个类模板，根据模板类型的不同可以实例化成持有 B 的模板类或是持有 C 的模板类，这样在生存环境中定义 A 时，传入 B 的模板类型，在测试环境中传入 C 的模板类型就可以做到 mock 的效果，不过想想就很麻烦，还是虚函数方便一些。
 
-##### Last-modified date: 2020.2.16, 1 p.m.
++ `sockaddr` 及 `sockaddr_in` 的定义：
+
+  ```c++
+  struct sockaddr {
+      unsigned short sa_family;   // 2 bytes
+      char sa_data[14];           // 14 bytes
+  };
+  
+  struct sockaddr_in {
+      unsigned short sin_family;  // 2 bytes
+      unsigned short sin_port;    // 2 bytes
+      struct in_addr sin_addr;    // 4 bytes
+      unsigned char sin_zero[8];  // 8 bytes
+  };
+  
+  struct in_addr {
+      unsigned int s_addr;
+  };
+  ```
+
+  以 `localhost:1234` 为例，`sockaddr_in` 结构体中的内容为 `02 00 04 d2 7f 00 00 01 00 00 00 00 00 00 00 00`（顺序为低地址到高地址，如果将前八个字节以 long 的类型读出的话，就是 `100007fd2040002`）
+
+  + 1, 2 两个字节 `02 00`，小端法存储，实际为 `0x2`，也就是 `AF_INET`
+  + 3, 4 两个字节 `04 d2`，大端法存储，实际为 `0x4d2`，也就是端口 `1234`
+  + 5~8 四个字节 `7f 00 00 01`，大端法存储，实际为 `0x7f000001`，也就是 ip `127.0.0.1`
+
+  需要注意的是直接用 `->sin_addr.s_addr` 读取 ip 的话读出来是 `0x1000007f`，因为 long 是用小端法存的，所以要经过 ntop 的转换才能得到 ip 字符串。
+
++ GMock 中 `SetArgReferee` 可以直接对引用实参赋值，而使用 `SetArgPointee` 对指针实参赋值时需要注意几点：
+
+  + 被赋值的对象要有拷贝构造和拷贝赋值
+
+  + 如果 mock 函数的返回值不为 void 的话，需要再加一个 action 标识返回值：
+
+    ```c++
+    EXPECT_CALL(mock, mockMethod(_))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<0>(x), Return(0)));
+    ```
+
+##### Last-modified date: 2020.3.14, 10 a.m.
