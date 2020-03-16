@@ -23,6 +23,24 @@
 
   当 A, B 退出作用于被销毁时，指针 1, 4 也被销毁，但是 a, b 并不会被释放，因为还有指针 2, 3 的存在。将指针 2, 3 改成 weak_ptr 可以解决这一问题。
 
++ 对于传参和返回时使用智能指针还是裸指针或是引用，C++ Core Guidelines 中有[一条建议](<https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#r30-take-smart-pointers-as-parameters-only-to-explicitly-express-lifetime-semantics>)是只有当你需要操作智能指针本身时，使用它作为入参或返回值，否则你都应该使用裸指针（`p.get()`）或引用（`*p.get()`）。也就是说没有用到智能指针本身的特性，就不要将入参或返回值限定为智能指针，否则裸指针就传不进去了。
+
++ 对于 shared_ptr 来说，其 reference count 的读写是线程安全的，但是其所指向的资源的读写不能说是完全线程安全的：
+
+  + 一个 shared_ptr 可以被多个线程同时读
+  + 多个 shared_ptr 可以被多个线程同时写，但是一个 shared_ptr 不能被多个线程同时写
+
+  为了支持 shared_ptr 的原子操作，有 `std::atomic_*` 一系列函数；而 C++20 引入 `std::atomic_shared_ptr` 彻底解决 shared_ptr 线程安全这一问题，相比之下后者有如下几个优点：
+
+  + 一致性：shared_ptr 本不是原子的类型，却有原子操作
+  + 正确性：对于 atomic_shared_ptr，编译器确保必须使用原子操作（不会因为疏忽导致忘记使用）
+  + 性能：atomic_shared_ptr 专为多线程而生，可以有更高效的锁的实现，而 shared_ptr 为了使用场景更多的单线程 workload，势必要放弃一些只对多线程高效的实现。
+
+  *references*:
+
+  + <https://www.modernescpp.com/index.php/atomic-smart-pointers>
+  + <https://www.justsoftwaresolutions.co.uk/threading/why-do-we-need-atomic_shared_ptr.html>
+
 ## 右值引用和移动语义
 
 + C++ 11 引入，所谓右值引用，赋予了程序员修改右值的能力。在引入右值引用之前，是没有办法修改这个右值的，也即这个右值所在地址中的值不能被修改，只能一直是这个右值（可能存在一个误区：右值不能取地址，但不代表右值没有地址）：
@@ -96,4 +114,22 @@
 
   再配合上 `std::forward()` 函数，保留 x 的左 / 右值属性，做到完美转发。（forward 保留左 / 右值属性，而 move 强转成右值）
 
-##### Last-modified date: 2020.3.4, 5 p.m.
+## Namespace
+
++ 匿名 namespace 中定义的变量和函数只能在同一翻译单元（编译单元）中被访问到，也就是同一个 `.cpp` 源文件。这也就是 static 功能之一——内部连接，相较于外部连接，内部连接对链接器不可见。
+
+## 从源代码到可执行文件
+
++ 从源代码到可执行文件大概可分为四步：
+  + 预处理，产物为 `.i` 文件（翻译单元）
+  + 编译，产物为 `.s` 汇编文件
+  + 汇编，产物为 `.o` 目标文件
+  + 链接，产物为可执行文件
++ 预处理（`gcc -E`）：`#include` 替换，`#define` 宏展开，`#ifdef` 条件编译
++ 编译（`gcc -S`）：转换成汇编代码
++ 汇编（`gcc -c`）：转换成二进制机器码
++ 链接（`gcc`）：函数库一般分为两种：
+  + 静态（`.a`）：运行时不需要链接操作，节省时间
+  + 动态（`.so`）：运行时链接，可执行文件本身不包含库文件的代码，节省空间
+
+##### Last-modified date: 2020.3.16, 8 p.m.

@@ -9,5 +9,6 @@
 + all in all 总而言之
 + in a nutshell 简而言之
 + pave the way for 为..铺平道路
++ have a notion of 有..的概念  C does not have a notion of modules.
 
-##### Last-modified date: 2020.3.4, 5 p.m.
+##### Last-modified date: 2020.3.16, 6 p.m.
