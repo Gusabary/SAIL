@@ -41,6 +41,8 @@
   + <https://www.modernescpp.com/index.php/atomic-smart-pointers>
   + <https://www.justsoftwaresolutions.co.uk/threading/why-do-we-need-atomic_shared_ptr.html>
 
++ sizeof 看一个 unique_ptr 为 8 字节，shared_ptr 和 weak_ptr 为 16 字节（64 位下）
+
 ## 右值引用和移动语义
 
 + C++ 11 引入，所谓右值引用，赋予了程序员修改右值的能力。在引入右值引用之前，是没有办法修改这个右值的，也即这个右值所在地址中的值不能被修改，只能一直是这个右值（可能存在一个误区：右值不能取地址，但不代表右值没有地址）：
@@ -118,6 +120,21 @@
 
 + 匿名 namespace 中定义的变量和函数只能在同一翻译单元（编译单元）中被访问到，也就是同一个 `.cpp` 源文件。这也就是 static 功能之一——内部连接，相较于外部连接，内部连接对链接器不可见。
 
++ 当某个变量名在匿名 namespace 和全局中都有定义时（例如 `a`），那么直接使用 `a` 是有二义性的，而使用 `::a` 可以访问到全局中定义的那个变量。事实上，`a` 和 `::a` 都可以访问到匿名 namespace 或全局定义的变量（如果只在一处定义的话）：
+
+  ```c++
+  int a = 1;
+  
+  namespace {
+  int a = 2;
+  }
+  
+  cout << a << endl;     // ambiguous
+  cout << ::a << endl;   // 1
+  ```
+
+  尚未找到有什么方法可以在两处都定义的情况下访问到匿名 namespace 中的那一个。
+
 ## 从源代码到可执行文件
 
 + 从源代码到可执行文件大概可分为四步：
@@ -132,4 +149,57 @@
   + 静态（`.a`）：运行时不需要链接操作，节省时间
   + 动态（`.so`）：运行时链接，可执行文件本身不包含库文件的代码，节省空间
 
-##### Last-modified date: 2020.3.16, 8 p.m.
+## using
+
+C++ 中 using 有三种用法：
+
++ using 声明：将别的命名空间或父类的变量名注入到当前作用域。
+
+  + 注入别的命名空间的变量：
+
+    ```c++
+    {
+        using std::map;
+        map<int, int> a;
+    }
+    ```
+
+  + 类中还可以用来改变父类成员的可见性：
+
+    ```c++
+    class A {
+    protected:
+    	int a;    
+    };
+    
+    class B : private A {
+    public:
+        using A::a;
+    };
+    ```
+
++ using 指令：引入命名空间，使某个 namespace 中所有变量在当前作用域中可见。
+
++ 类型别名：类似 typedef，但比 typedef 强的地方在于可以定义模板类型的别名：
+
+  ```c++
+  template<typename Val>
+  using int_map_t = std::map<int, Val>;
+  
+  int_map_t<int> imap;
+  ```
+
+  事实上，typedef 只要用 struct 包一层也可以定义模板类型的别名：
+
+  ```c++
+  template<typename Val>
+  struct int_map{
+      typedef std::map<int, Val> type;
+  };
+  
+  int_map<int>::type imap;
+  ```
+
+*[reference](<https://blog.wandoer.com/coding/using-%E5%85%B3%E9%94%AE%E5%AD%97%E5%9C%A8-c-%E4%B8%AD%E7%9A%84%E5%87%A0%E7%A7%8D%E7%94%A8%E6%B3%95.htm>)*
+
+##### Last-modified date: 2020.3.17, 2 p.m.
