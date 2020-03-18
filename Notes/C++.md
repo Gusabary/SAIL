@@ -202,4 +202,60 @@ C++ 中 using 有三种用法：
 
 *[reference](<https://blog.wandoer.com/coding/using-%E5%85%B3%E9%94%AE%E5%AD%97%E5%9C%A8-c-%E4%B8%AD%E7%9A%84%E5%87%A0%E7%A7%8D%E7%94%A8%E6%B3%95.htm>)*
 
-##### Last-modified date: 2020.3.17, 2 p.m.
+## decltype
+
++ decltype 关键字用来根据表达式推导出其类型：
+
+  ```c++
+  int i = 4;
+  decltype(i) a;
+  ```
+
++ 有几个主要的用途：
+
+  + 与 using / typedef 一起用，用于定义类型：
+
+    ```c++
+    vector<int> vec;
+    typedef decltype(vec.begin()) vectype;
+    ```
+
+  + 重用匿名类型：
+
+    ```c++
+    struct {
+        int a;
+    } anon_s;
+    
+    decltype(anon_s) as;
+    ```
+
+  + 泛型编程中结合 auto，用于追踪函数的返回值类型：
+
+    ```c++
+    template <typename T>
+    auto multiply(T x, T y)->decltype(x*y) {
+    	return x*y;
+    }
+    ```
+
++ decltype 的判别规则（优先级从上到下）：
+
+  + 如果表达式是没有带括号的变量，则推断结果就是该变量的类型
+  + 如果表达式是将亡值，则推断结果为该值类型的右值引用
+  + 如果表达式是左值，则推断结果是该值类型的左值引用
+  + 如果以上都不是，则推断结果就是表达式的类型
+
+  所谓没有带括号的变量，是指 decltype 求的是变量本身的类型，因为带了括号之后 decltype 求的就是变量外面有个括号所形成的表达式的类型了，两者是不一样的，前者是变量本身（第一条规则），后者是左值表达式（第二条规则）：
+
+  ```c++
+  int a;
+  decltype(a) b;    // int
+  decltype((a)) c;  // int &
+  ```
+
+  此处 `(a)` 为左值表达式是因为可以对其取地址，而不是说其可修改（常量左值）。
+
++ *[reference](<https://github.com/Light-City/CPlusPlusThings/tree/master/basic_content/decltype>)*
+
+##### Last-modified date: 2020.3.18, 4 p.m.
