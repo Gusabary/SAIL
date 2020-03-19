@@ -258,4 +258,27 @@ C++ 中 using 有三种用法：
 
 + *[reference](<https://github.com/Light-City/CPlusPlusThings/tree/master/basic_content/decltype>)*
 
-##### Last-modified date: 2020.3.18, 4 p.m.
+## Lambda 表达式
+
++ 匿名函数，完整的声明格式如下：
+
+  ```
+  [capture list] (params list) mutable exception-> return type { function body }
+  ```
+
+  其中如果指定了 mutable 关键字，则该匿名函数的值捕获变量是可修改的，exception 尚不知道啥意思
+
++ capture list 中可以捕获外部变量，有两种捕获方式：值捕获和引用捕获
+
+  + `[x]` 值捕获
+  + `[&x]` 引用捕获
+  + `[=]` 由编译器推断需要捕获哪些变量，值捕获
+  + `[&]` 由编译器推断需要捕获哪些变量，引用捕获
+
++ 可以这样定义一个 lambda 表达式：
+
+  ```c++
+  auto f = []() {};
+  ```
+
+##### Last-modified date: 2020.3.19, 8 p.m.
