@@ -126,7 +126,7 @@
 
   ```c++
   // tmp 是类的成员变量，分配在堆上，地址差不多是 0x207e4c0 这样
-  // 或者 tmp 是 static 变量，也分配在堆上，地址差不多是 0x9e47e0 这样
+  // 或者 tmp 是 static 变量，分配在静态区，地址差不多是 0x9e47e0 这样
   char *p;
   {
       strcmp("123", tmp);
@@ -140,4 +140,4 @@
 
 + github 判断用户是谁是通过邮箱来判断的，ssh keys 只负责判断用户有没有权限读写某个仓库，可以用 `git config --global user.email ${email}` 来修改使用哪个邮箱，然后用 `git commit --amend --reset-author` 来修改最近一次提交。
 
-##### Last-modified date: 2020.2.16, 12 p.m.
+##### Last-modified date: 2020.3.30, 6 p.m.
