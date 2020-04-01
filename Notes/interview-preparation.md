@@ -39,4 +39,21 @@
   + 乐观机制：多个进程同时放锁然后再抢；kill 掉某个进程
   + 悲观机制：给锁编号，进程只能按顺序申请；进程在一开始就请求完需要的所有锁
 
-##### Last-modified date: 2020.3.20, 1 p.m.
+## Algorithms
+
+### [打印素数](<https://github.com/labuladong/fucking-algorithm/blob/master/%E9%AB%98%E9%A2%91%E9%9D%A2%E8%AF%95%E7%B3%BB%E5%88%97/%E6%89%93%E5%8D%B0%E7%B4%A0%E6%95%B0.md>)
+
++ 埃氏筛法，时间复杂度为 O(nloglogn)
++ 优化：外层循环到 sqrt(n)，内层从 i^2 开始循环
+
+### [编辑距离](<https://github.com/labuladong/fucking-algorithm/blob/master/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92%E7%B3%BB%E5%88%97/%E7%BC%96%E8%BE%91%E8%B7%9D%E7%A6%BB.md>)
+
++ 一个字符串最少经过多少次增、删、替操作可以变到另一个字符串
+
++ > 解决两个字符串的动态规划问题，一般都是用两个指针 i,j 分别指向两个字符串的最后，然后一步步往前走，缩小问题的规模。
+
++ 有重叠子问题可以用**备忘录**或者**动规**来优化
+
++ 二维的 DP table 能不能优化成一维的可以看当前状态会从哪些状态转移过来
+
+##### Last-modified date: 2020.4.1, 9 p.m.
