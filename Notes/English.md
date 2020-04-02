@@ -10,5 +10,7 @@
 + in a nutshell 简而言之
 + pave the way for 为..铺平道路
 + have a notion of 有..的概念  C does not have a notion of modules.
++ outside work 在工作之外
++ pay a lot of attention to sth. 
 
-##### Last-modified date: 2020.3.16, 6 p.m.
+##### Last-modified date: 2020.4.2, 5 p.m.
