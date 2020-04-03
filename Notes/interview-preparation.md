@@ -105,4 +105,8 @@
 
 + 二叉堆和平衡二叉树的操作复杂度都是 O(logn)，但是前者只能删除堆顶元素，而后者可以删除任一元素。但是堆本质就是数组，实现简单；相比之下平衡二叉树的实现更难（反正是用标准库其实也无所谓）。
 
-##### Last-modified date: 2020.4.1, 9 p.m.
+### [并查集 Union-Find](<https://github.com/labuladong/fucking-algorithm/blob/master/%E7%AE%97%E6%B3%95%E6%80%9D%E7%BB%B4%E7%B3%BB%E5%88%97/UnionFind%E7%AE%97%E6%B3%95%E8%AF%A6%E8%A7%A3.md>)
+
++ 常用来解决**动态连通**问题，例如 DFS
+
+##### Last-modified date: 2020.4.3, 4 p.m.
