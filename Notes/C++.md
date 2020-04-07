@@ -23,6 +23,8 @@
 
   当 A, B 退出作用于被销毁时，指针 1, 4 也被销毁，但是 a, b 并不会被释放，因为还有指针 2, 3 的存在。将指针 2, 3 改成 weak_ptr 可以解决这一问题。
 
+  *[reference](<https://segmentfault.com/a/1190000016055581#item-3-6>)*
+
 + 对于传参和返回时使用智能指针还是裸指针或是引用，C++ Core Guidelines 中有[一条建议](<https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#r30-take-smart-pointers-as-parameters-only-to-explicitly-express-lifetime-semantics>)是只有当你需要操作智能指针本身时，使用它作为入参或返回值，否则你都应该使用裸指针（`p.get()`）或引用（`*p.get()`）。也就是说没有用到智能指针本身的特性，就不要将入参或返回值限定为智能指针，否则裸指针就传不进去了。
 
 + 对于 shared_ptr 来说，其 reference count 的读写是线程安全的，但是其所指向的资源的读写不能说是完全线程安全的：
@@ -281,4 +283,4 @@ C++ 中 using 有三种用法：
   auto f = []() {};
   ```
 
-##### Last-modified date: 2020.3.19, 8 p.m.
+##### Last-modified date: 2020.4.7, 9 a.m.
