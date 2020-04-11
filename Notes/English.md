@@ -14,6 +14,11 @@
 + have a notion of 有..的概念  C does not have a notion of modules.
 + outside work 在工作之外
 + pay a lot of attention to sth. 
++ underlying implementation 底层实现
++ time-consuming 耗时的
++ full / half 'duplex 全双工 / 半双工
++ means of communication 通信方式
++ pointee object 被指向的对象
 
 ## non-tech
 
@@ -22,6 +27,8 @@
 + that's it 就是这样
 
 ## Some questions that may be asked
+
+### HR interview
 
 + **Tell me a little about yourself**
 
@@ -104,5 +111,9 @@
   + As far as I know, Optiver doesn't provide dinner, so what if someone works overtime. Does he need to have dinner outside?
   + Could you give me any evaluation or suggestions about my performance in today's interview?
   + Could you talk a little about how you feel about Optiver from a perspective of a, you know, veteran?
+
+### Tech interview
+
++ 
 
 ##### Last-modified date: 2020.4.7, 7 p.m.
