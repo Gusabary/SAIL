@@ -25,6 +25,8 @@
 + Could you please repeat your question? I didn't hear it clearly.
 + Sorry, can you say it again?
 + that's it 就是这样
++ That's all I know.
++ That's all that came to my mind.
 
 ## Some questions that may be asked
 
@@ -116,4 +118,4 @@
 
 + 
 
-##### Last-modified date: 2020.4.7, 7 p.m.
+##### Last-modified date: 2020.4.12, 8 p.m.

@@ -103,10 +103,24 @@
 ### Something else
 
 + **hash collision**
+
 + **template**
+
 + **copy constructor**
+
+  Empty class will have default constructor, destructor, copy constructor and copy assignment. After cpp 11, there are also move constructor and move assignment.
+
+  when would the copy constructor be invoked:
+
+  + initialize an object with another object of the same class
+  + the object is passed by value to a function
+  + the object is returned by value from a function
+
+  But there exists a return value optimization, so in the third scenario, the copy constructor may not be invoked actually.
+
 + **move semantic**
-+ 
+
+  Move semantic is a new way of moving resources around in an optimal way by avoiding unnecessary copy of temporary objects, based on rvalue references.
 
 ## Data Structure
 
@@ -183,18 +197,48 @@
 
 ### TCP
 
-#### TCP connection begin - three-way handshake
++ **What's the difference between TCP and UDP?**
 
-+ step 1: SYN
-+ step 2: SYN + ACK
-+ step 3: ACK
+  First, TCP is a connection-oriented protocol, which means the client and server should establish a connection before transmitting data and close the connection after it while UDP is a datagram oriented protocol so there is no overhead of opening a connection, maintaining a connection and terminating a connection.
 
-#### TCP connection terminated - four-way handshake
+  Second, TCP is reliable and has flow control and congestion control while the delivery of data in UDP cannot be guaranteed.
 
-+ step 1: FIN from the client
-+ step 2: from now on, the client can no longer send any packet to the server but the server can send to the client
-+ step 3: FIN from the server
-+ step 4: the client waits for 2MSL (Most Segment Lifetime) and then closes the connection
+  Third, TCP makes sure that the packets arrive at server in order but there is no sequencing of data in UDP.
+
+  Fourth, TCP is one-to-one while UDP can also be one-to-many, many-to-one and many-to-many.
+
++ **What is flow control?**
+
+  Flow control basically means that TCP will ensure that a sender will not overwhelm a receiver by sending packets faster then it can consume. The idea is that the receiver will send some feedbacks to the sender to let it know about its current condition.
+
+  Actually with every ack the receiver responses, it will also advertise its current receive window, which is the free space in the receiver buffer. The sender will ensure that the number of packets in flight is never more than the size of receive window. Packets in flight means packets that have been sent but yet haven't been acknowledged.
+
+  When the window size reaches zero, the sender will stop transmitting data and start the persist timer. That is to say, the sender will periodically send a small packet to receiver to check whether it can receive the data again.
+
+  Sliding window is to say that when the sender receives an ack, it first checks whether the ack is the left-most one of its window. If it is, the window will slide forward until the number of packets in flight reaches the size of receive window again.
+
++ **What is congestion control?**
+
+  Congestion control is used to avoid congestion in the network. It has several policies. They are slow start, congestion avoidance, fast retransmit and fast recovery.
+
+  At the very beginning, the congestion window size increases exponentially until it reaches a threshold called ssthresh. Then the window size increases linearly, which is called congestion avoidance.
+
+  Then there may be two results. First is timeout, in which condition, the ssthresh is reduced to half of the current window size and the window size is set to one and then start with slow start again.
+
+  The second condition is that the sender receives 3 duplicated ack. In this condition, the ssthresh is also reduced to half of the current window size but the window size is set to the new ssthresh instead of one, and then start with congestion avoidance again.
+
++ **TCP connection begin - three-way handshake**
+  + step 1: SYN. In the first step, the client sends a SYN to the server, informing that it wants to establish a connection and telling the server the sequence number it wants to start with.
+  + step 2: ACK + SYN. Then the server responds with a ACK and SYN. ACK signifies the response of segment it received and SYN signifies the sequence number that the server wants to start with.
+  + step 3: ACK. Finally the client sends an ACK to acknowledge the response of server and now they  have both established a reliable connection and they can begin to transmit data.
+
+  The first two steps establish the connection from client to server while the last two steps establish the connection from server to client. To my understanding, a pair of SYN and ACK means a connection established in one direction.
+
++ **TCP connection terminated - four-way handshake**
+  + step 1: FIN. First the client decides to close the connection so it sends a FIN to the server and enters  FIN_WAIT_1 state.
+  + step 2: ACK. Once the server receives the FIN, it sends back an ACK immediately and enters CLOSE_WAIT state. And after the client receives the ACK, it will enter FIN_WAIT_2 state, in which the client can no longer send any packet to the server but the server can send to the client.
+  + step 3: FIN. After some closing process in the server, it will send a FIN to the client and enter LAST_ACK state.
+  + step 4: ACK. The client sends an ACK and enters TIME_WAIT state, which may last for 2MSL and then closes the connection.
 
 ### Socket
 
@@ -204,5 +248,7 @@
 
 + **How to choose the pivot in quick sort?**
 
-##### Last-modified date: 2020.4.1, 3 p.m.
+  Choose three elements. They could be randomly chosen or we can choose the left most one, the right most one and the middle one and then choose the median of them as the pivot.
+
+##### Last-modified date: 2020.4.12, 8 p.m.
 
