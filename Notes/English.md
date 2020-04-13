@@ -38,7 +38,7 @@
 
   I'm Tao Bocheng. I'm now a junior majoring in software engineering at Shanghai Jiao Tong University.
 
-  It’s my great honor to be given this great opportunity to talk with you here.
+  // It’s my great honor to be given this great opportunity to talk with you here.
 
   During the period of school, I write code in cpp most of the time. I really like it.
 
@@ -114,8 +114,4 @@
   + Could you give me any evaluation or suggestions about my performance in today's interview?
   + Could you talk a little about how you feel about Optiver from a perspective of a, you know, veteran?
 
-### Tech interview
-
-+ 
-
-##### Last-modified date: 2020.4.12, 8 p.m.
+##### Last-modified date: 2020.4.13, 7 p.m.

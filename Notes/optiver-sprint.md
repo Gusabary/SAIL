@@ -6,11 +6,11 @@
 
 + **polymorphism**
 
-  From the perspective of programmers, I declare two classes, one is called class A, which is the parent class and the other is called class B, which is the child class. Now I declare a function with virtual keyword in class A and override it in class B. So in my code, I could declare an object of class A but use the constructor of class B to initialize it. So I write "A star obj equals new B", and then when I call the method of obj, the function in class B will actually be invoked although obj is previously declared as class A.
+  From the perspective of programmers, I declare two classes, one is called class A, which is the parent class and the other is called class B, which is the child class. Now I declare a function with virtual keyword in class A and override it in class B. So in my code, I could declare an object pointer of class A but use the constructor of class B to initialize it. So I write "A star obj equals new B", and then when I call the method of obj, the function in class B will actually be invoked although obj is previously declared as class A.
 
-  That's how we use the polymorphism mechanism, and from the level of compiler, when there is any virtual function in the class, the compiler will allocate a virtual table for the class in the static area during compiler-time. In the virtual table, there are addresses of the virtual functions. So when we have the parent class A and child class B, we have two virtual tables. And the most important is that when I override the virtual function in child class, the corresponding entry in the virtual table of child class will also be updated. So now each class has their own version of implementations in the virtual table.
+  That's how we use the polymorphism mechanism, and from the level of compiler, when there is any virtual function in the class, the compiler will allocate a virtual table for the class in the static area during compile-time. In the virtual table, there are addresses of the virtual functions. So when we have the parent class A and child class B, we have two virtual tables. And the most important is that when I override the virtual function in child class, the corresponding entry in the virtual table of child class will also be updated. So now each class has their own version of implementations in the virtual table.
 
-  And finally, when we initialize the object, the compiler will add a field called virtual pointer (vptr) into the memory of the object just like it is a member variable of that class. And the virtual pointer points to the virtual table of the class whose constructor is just invoked. That is to say, when we declare an object as parent class but use the constructor of child class to initialize it, we will get a virtual pointer pointing to the virtual table of child class so when we invoke any virtual function, the compiler will find along the virtual pointer to get the child class version.
+  And finally, when we initialize the object, the compiler will add a field called virtual pointer (vptr) into the memory of the object just like it is a member variable of that class. And the virtual pointer points to the virtual table of the class whose constructor is just invoked. That is to say, when we declare an object as parent class but use the constructor of child class to initialize it, we will get a virtual pointer pointing to the virtual table of child class so when we invoke any virtual function, the compiler will go along the virtual pointer to get the child class version.
 
 + **Why cannot the constructor be virtual function?**
 
@@ -46,7 +46,7 @@
 
   The third is assembly. Its task is to transfer the assembly code to machine code in binary format.
 
-  And the fourth is linking. Its task is to plug in the actual address of some functions (relocation), symbol resolution and combine some extra code to our program that is required when the program starts and ends such as the code for passing the command line arguments and environment variables.
+  And the fourth is linking. Its task is to plug in the actual address of some functions (**relocation**), **symbol resolution** and combine some extra code to our program that is required when the program starts and ends such as the code for passing the command line arguments and environment variables.
 
 ### Smart Pointer
 
@@ -58,7 +58,7 @@
 
   First, resources are exclusively possessed by unique pointer, which means it has disabled the copy constructor and copy assignment.
 
-  Second, resources can be shared between shared pointer. It maintains a reference counter, which will increase by one when the copy constructor or copy assignment get invoked and correspondingly will decrease by one when the destructor gets invoked and the resource will not be released until the reference counter reaches zero.
+  Second, resources can be shared between shared pointers. It maintains a reference counter, which will increase by one when the copy constructor or copy assignment get invoked and correspondingly will decrease by one when the destructor gets invoked and the resource will not be released until the reference counter reaches zero.
 
   Finally, the weak pointer is born to solve the problem of circular reference of shared pointer. The weak pointer is a kind of temporary ownership, which means it will not increase the reference counter when pointing to the resource.
 
@@ -66,7 +66,7 @@
 
 + **Is shared_ptr thread safe?**
 
-  The reference count itself is thread self because it's accessed atomically.
+  The reference counter itself is thread safe because it's accessed a'tomically.
 
   But the raw pointer managed by the shared pointer is certainly not thread safe without any lock.
 
@@ -77,6 +77,8 @@
   If you use the constructor to create the shared pointer and the object managed by it, you will take two memory allocations, one for the object and one for the reference counter. While make_shared allocates this two blocks of memory at one time.
 
   So the greatest advantage of make_shared is that it reduces half the overhead of memory allocation. What's more, when you use the constructor as one of the parameter of any function while another parameter is a result of a function call, which could throw exception, then this may lead to memory leak. Because the evaluation order of function parameters are uncertain, at least before cpp 17, one of the possible sequences may be new the object first and then throw an exception before the shared pointer could take the ownership in its constructor. So with the make_shared, the first and third thing in the scenario just described will be done together.
+
+  But make_shared needs access to the constructor of the class, which may be private.
 
 ### STL
 
@@ -143,7 +145,26 @@
   + shared memory (What's the difference from general memory?)
   + socket
 
++ **thread synchronization**
+
+  When two or more threads are executed concurrently, the shared critical resources need to be protected, which is to say, the accesses to it from different threads need to be synchronized. Otherwise, there may be some conflicts.
+
+  Semaphore / Lock
+
 + **deadlock**
+
+  There need to be four conditions:
+
+  + mutual exclusive: the resource (lock) is non-shareable
+  + hold and wait: a process holding a lock is waiting for another lock
+  + no preemption: the lock cannot be taken from the process unless the process itself releases it
+  + circular wait: many processes are waiting for each other in circular form
+
++ **Why virtual memory?**
+
+  + With virtual memory, we can use DRAM as a cache for disc.
+  + Virtual memory simplifies memory management. Every process gets the same linear address space.
+  + One process cannot interfere with the memory space of another process.
 
 + **ptrace**
 
@@ -151,49 +172,41 @@
 
 ## Network
 
-### OSI 七层模型
+### OSI Seven Layer Model
 
 + Open System Interconnection Model
 
-#### Application Layer
++ **Application Layer**
+  + HTTP, FTP, TELNET, SSH, SMTP, POP3, HTML, DNS
 
-+ HTTP, FTP, TELNET, SSH, SMTP, POP3, HTML, DNS
++ **Presentation Layer**
+  + translation of data between a networking service and an application
+  + character encoding, data compression and encryption/decryption
 
-#### Presentation Layer
++ **Session Layer**
+  + manage communication sessions
 
-+ translation of data between a networking service and an application
-+ character encoding, data compression and encryption/decryption
++ **Transport Layer**
+  + process to process
+  + TCP, UDP
 
-#### Session Layer
++ **Network Layer**
+  + host to host
+  + IP
+  + in the form of packet
 
-+ manage communication sessions
++ **Data Link Layer**
+  + in the form of data frame
+  + error detection
 
-#### Transport Layer
-
-+ process to process
-+ TCP, UDP
-
-#### Network Layer
-
-+ host to host
-+ IP
-+ in the form of packet
-
-#### Data Link Layer
-
-+ in the form of data frame
-+ error detection
-
-#### Physical Layer
-
-+ responsible for the transmission and reception of unstructured raw data
++ **Physical Layer**
+  + responsible for the transmission and reception of unstructured raw data
 
 ### IP
 
 + **Subnet mask** is used to differentiate network address and host address from a given IP address
 + **A, B, C, D, E IP**
 + **the difference between IPv4 and IPv6**
-+ 
 
 ### TCP
 
@@ -206,6 +219,8 @@
   Third, TCP makes sure that the packets arrive at server in order but there is no sequencing of data in UDP.
 
   Fourth, TCP is one-to-one while UDP can also be one-to-many, many-to-one and many-to-many.
+
+#### Flow Control and Congestion Control
 
 + **What is flow control?**
 
@@ -227,9 +242,11 @@
 
   The second condition is that the sender receives 3 duplicated ack. In this condition, the ssthresh is also reduced to half of the current window size but the window size is set to the new ssthresh instead of one, and then start with congestion avoidance again.
 
+#### Handshake
+
 + **TCP connection begin - three-way handshake**
   + step 1: SYN. In the first step, the client sends a SYN to the server, informing that it wants to establish a connection and telling the server the sequence number it wants to start with.
-  + step 2: ACK + SYN. Then the server responds with a ACK and SYN. ACK signifies the response of segment it received and SYN signifies the sequence number that the server wants to start with.
+  + step 2: ACK + SYN. Then the server responds with an ACK and SYN. ACK signifies the response of segment it received and SYN signifies the sequence number that the server wants to start with.
   + step 3: ACK. Finally the client sends an ACK to acknowledge the response of server and now they  have both established a reliable connection and they can begin to transmit data.
 
   The first two steps establish the connection from client to server while the last two steps establish the connection from server to client. To my understanding, a pair of SYN and ACK means a connection established in one direction.
@@ -240,9 +257,37 @@
   + step 3: FIN. After some closing process in the server, it will send a FIN to the client and enter LAST_ACK state.
   + step 4: ACK. The client sends an ACK and enters TIME_WAIT state, which may last for 2MSL and then closes the connection.
 
+#### Timer
+
++ **Retransmission Timer**
+
+  It aims to retransmitting lost segments. When a segment is sent, the timer starts and when the segment's acknowledgement is received, the timer ends. If the timer expires the retransmission timeout, we should retransmit the segment.
+
+  Typically, the retransmission timeout should be set to the RTT but it's very hard to get the precise RTT value so we need some more values.
+
+  First is the RTTm, which is measured RTT. That is the measured round-trip time for one segment.
+
+  Second is the RTTs, which is smoothed RTT. That is the weighted average of RTTm. It can reduce the impact of high fluctuation of RTTm.
+
+  Third is RTTd, which is deviated RTT. It also aims to reduce the impact of fluctuation.
+
+  So the retransmission timeout will be calculated with RTTs and RTTd. What's more, at every transmission, the value of RTO will double.
+
++ **Persistent Timer**
+
+  When the sender receives an acknowledgement with a window size of zero, it will start a persistent timer. When the timer goes off, it will send a small segment called probe to check whether the receiver can receive data again.
+
++ **Keep Alive Timer**
+
+  This timer aims to prevent long idle connection. Whenever the server hears from client, it will reset the timer. The timeout is usually 2 hours, which means if the server hasn't heard from client for 2 hours, it will send several probes to check whether the client is still alive. If there are no responses, the server may assume that the client is down and terminate the connection.
+
++ **Time Wait Timer**
+
+  This timer is used during connection termination. The timer starts when the client sends the last ACK. Usually, the timer is set to twice the maximum segment lifetime to make sure that all segments will have been received or discarded.
+
 ### Socket
 
-+ **socket**
++ **socket** is an endpoint for sending and receiving data between two applications in the network.
 
 ## Algorithms
 
@@ -250,5 +295,5 @@
 
   Choose three elements. They could be randomly chosen or we can choose the left most one, the right most one and the middle one and then choose the median of them as the pivot.
 
-##### Last-modified date: 2020.4.12, 8 p.m.
+##### Last-modified date: 2020.4.13, 7 p.m.
 
