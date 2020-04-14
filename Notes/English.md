@@ -19,6 +19,7 @@
 + full / half 'duplex 全双工 / 半双工
 + means of communication 通信方式
 + pointee object 被指向的对象
++ as the name suggests 顾名思义
 
 ## non-tech
 
@@ -27,6 +28,7 @@
 + that's it 就是这样
 + That's all I know.
 + That's all that came to my mind.
++ If I remember correctly.
 
 ## Some questions that may be asked
 
@@ -114,4 +116,4 @@
   + Could you give me any evaluation or suggestions about my performance in today's interview?
   + Could you talk a little about how you feel about Optiver from a perspective of a, you know, veteran?
 
-##### Last-modified date: 2020.4.13, 7 p.m.
+##### Last-modified date: 2020.4.14, 8 p.m.

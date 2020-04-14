@@ -136,7 +136,9 @@
 
   in the kernel they are both referred to as the same data structure called task, the only difference is that the amount of resources they share is different. Between processes, many resources are not shared such as the virtual memory, fd table and signal handler. But between threads, many resources are shared except stack and registers.
 
-+ **Inter-process communication**
+  So the different threads in the same process could directly communicate with each other while the communication between processes needs IPC.
+
++ **IPC, Inter-process communication**
 
   + pipe (How many kinds of pipe do you know?)
   + semaphore
@@ -144,6 +146,17 @@
   + message queue
   + shared memory (What's the difference from general memory?)
   + socket
+
++ **scheduling policies**
+
+  + First Come, First Served: easy to understand and implement while both turn-around time and response time are long.
+  + Shortest Job First: turn-around time is short while response time is long and unfair.
+  + Round Robin: fair and short response time while turn-around time is long.
+  + Priority scheduling such as Multi-level Queue.
+
+  Turn-around time is the interval from first entrance of the task to the completion.
+
+  Response time is the interval from first entrance of the task to the first response it gets.
 
 + **thread synchronization**
 
@@ -166,7 +179,15 @@
   + Virtual memory simplifies memory management. Every process gets the same linear address space.
   + One process cannot interfere with the memory space of another process.
 
++ **page fault**
+
+  Page fault is an exception raised by MMU when a running program is trying to access a virtual address that has not been mapped. Then the OS exception handler will be invoked to move data from disk to memory and return the execution flow. That is what we call page swapping.
+
+  page swapping policies: FIFO, LRU, clock algorithm
+
 + **ptrace**
+
+  Ptrace is a system call. It provides a means by which one process can observe and control the execution of another process. Usually the process being traced is child process we called tracee, and the parent process is tracer. The principle is whenever the tracee is delivered a signal, it will be trapped in the tracer and at this moment, tracer can observe and even change the tracee's memory and registers. So ptrace is usually used to implement breakpoint debugging and system call tracing.
 
 + **describe the process of fork**
 
@@ -201,6 +222,14 @@
 
 + **Physical Layer**
   + responsible for the transmission and reception of unstructured raw data
+
+### Network Devices
+
++ **difference between router and switch**
+
+  The main objective of router is to connect different networks together while the main objective of switch is to connect different devices within a network.
+
+  Router works in network layer where the data is in the form of packet while switch works in data link layer where data is in the form of frame.
 
 ### IP
 
@@ -295,5 +324,5 @@
 
   Choose three elements. They could be randomly chosen or we can choose the left most one, the right most one and the middle one and then choose the median of them as the pivot.
 
-##### Last-modified date: 2020.4.13, 7 p.m.
+##### Last-modified date: 2020.4.14, 8 p.m.
 
