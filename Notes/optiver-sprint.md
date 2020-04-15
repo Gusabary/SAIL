@@ -2,6 +2,22 @@
 
 ## C++
 
++ **Why do you like cpp?**
+
+  First it's fast. It provides the excellent execution efficiency that other languages cannot have.
+
+  And it's powerful. There are so many functionalities or features in cpp. The process of learning the language itself is enjoyable.
+
+  And it's the language that I'm most familiar with. I mean the feeling is great that when you come up with an idea you can directly write it out without thinking "oh how should I write code here in Java or Python" and when you write each line of code, you know exactly what will happen and how it works.
+
++ **Why is cpp fast?**
+
+  First the variables and data structures are created on the system's stack unless you use malloc or new or something like that. It's faster for system to use data on the stack (Because it's very fast to allocate and free memory space in the stack, just decrease and increase the rsp but for the heap, it needs to maintain some data structures. And the data on the stack is tighter, which means less cache miss. Also, heap is a global resource so it needs to guarantee the thread safety.)
+
+  And cpp organize its data structure in a more direct way. For example, the access to a field of a struct needs just an addition of a pointer and a constant without any more operations (like looking up a hash table)
+
+  And cpp can generate executable file directly and run it on the system but other languages like java run on JVM and they are compiled at run-time.
+
 ### Virtual Keyword
 
 + **polymorphism**
@@ -34,6 +50,12 @@
 
   So with the help of virtual inheritance, we could make the two subobjects become a shared part, which means we only reserve one copy of them so that the ambiguity can be eliminated.
 
++ **final identifier in cpp 11**
+
+  The final specifier can be applied to a virtual function so that this function cannot be overridden in the child class.
+
+  Also the final specifier can be applied to a class so that the class cannot be inherited.
+
 ### Compilation
 
 + **the whole compilation process, from source code to executable file**
@@ -49,6 +71,14 @@
   And the fourth is linking. Its task is to plug in the actual address of some functions (**relocation**), **symbol resolution** and combine some extra code to our program that is required when the program starts and ends such as the code for passing the command line arguments and environment variables.
 
 ### Smart Pointer
+
++ **RAII**
+
+  Resource Acquisition Is Initialization.
+
+  It's a programming technique which binds the life cycle of a resource to the life cycle of an object. That means the constructor will allocate the resource and the destructor will release the resource. This can avoid memory leakage. 
+
+  Shared pointer and std string are both examples of RAII.
 
 + **smart pointer** (circular reference)
 
@@ -106,6 +136,10 @@
 
 + **hash collision**
 
+  + open addressing: find another free hash unit and store the element in it
+  + separate chaining: replace the single element with a linked list
+  + rehashing: use another hash function for calculation
+
 + **template**
 
 + **copy constructor**
@@ -128,13 +162,15 @@
 
 + **heap**
 
+  A max-heap is a complete binary tree in which the value in each internal node is greater than or equal to the values in the children of that node.
+
 ## OS
 
 + **the difference between process and thread**
 
   process is the independent unit of resource allocation while thread is the independent unit of schedule
 
-  in the kernel they are both referred to as the same data structure called task, the only difference is that the amount of resources they share is different. Between processes, many resources are not shared such as the virtual memory, fd table and signal handler. But between threads, many resources are shared except stack and registers.
+  In the kernel they are both referred to as the same data structure called task, the only difference is that the amount of resources they share is different. Between processes, many resources are not shared such as the virtual memory, fd table and signal handler. But between threads, many resources are shared except stack and registers.
 
   So the different threads in the same process could directly communicate with each other while the communication between processes needs IPC.
 
@@ -188,6 +224,10 @@
 + **ptrace**
 
   Ptrace is a system call. It provides a means by which one process can observe and control the execution of another process. Usually the process being traced is child process we called tracee, and the parent process is tracer. The principle is whenever the tracee is delivered a signal, it will be trapped in the tracer and at this moment, tracer can observe and even change the tracee's memory and registers. So ptrace is usually used to implement breakpoint debugging and system call tracing.
+
++ **seccomp**
+
+  Seccomp is a security tool provided by linux kernel. It allows a process to run in a sandbox environment in which the process can only invoke limited system calls. For example, I could write a configuration file and specify some system calls that the process could invoke. If the process is trying any system call that is not in the whitelist, it will be shut down.
 
 + **describe the process of fork**
 
@@ -300,7 +340,7 @@
 
   Third is RTTd, which is deviated RTT. It also aims to reduce the impact of fluctuation.
 
-  So the retransmission timeout will be calculated with RTTs and RTTd. What's more, at every transmission, the value of RTO will double.
+  So the retransmission timeout will be calculated with RTTs and RTTd. What's more, at every transmission, the value of RTO (retransmission timeout) will double.
 
 + **Persistent Timer**
 
@@ -324,5 +364,5 @@
 
   Choose three elements. They could be randomly chosen or we can choose the left most one, the right most one and the middle one and then choose the median of them as the pivot.
 
-##### Last-modified date: 2020.4.14, 8 p.m.
+##### Last-modified date: 2020.4.15, 4 p.m.
 

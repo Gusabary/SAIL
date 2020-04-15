@@ -20,6 +20,11 @@
 + means of communication 通信方式
 + pointee object 被指向的对象
 + as the name suggests 顾名思义
++ paren'thesis 圆括号
++ bracket 方括号
++ brace 花括号 /ei/
++ quotes 引号
++ ampersand &符号
 
 ## non-tech
 
@@ -56,9 +61,11 @@
 
   It's a secutiry system for inspection and monitoring, which aims at the third-party application that may be risky. 
 
-  The whole system divides into two parts. The first one is to analyze statically. We read the user-defined configuration file into our system, then use ptrace to analyze the third-party application statically and finally generate a report about the application's behaviour.
+  The whole system divides into two parts. The first one is the static analysis with ptrace. We read the user-defined configuration file into our system, then use ptrace to analyze the third-party application statically and finally generate a report about the application's behaviour.
 
-  The second part is to monitor in real-time. We use seccomp, which is a security tool provided by linux, to set up a sandbox environment in which we run the target application. And once the application tries some risky operations that we forbid we will shut it down. Also we evaluate the temporal overhead of our system.
+  The second part is real-time monitoring. We use seccomp, which is a security tool provided by linux, to set up a sandbox environment in which we run the target application. And once the application tries some risky operations that we forbid we will shut it down. Also we evaluate the temporal overhead of our system.
+
+  I'm mainly responsible for ptrace-related work in the first part and seccomp-related work in the second part.
 
 + **What's your strengthens?**
 
@@ -116,4 +123,4 @@
   + Could you give me any evaluation or suggestions about my performance in today's interview?
   + Could you talk a little about how you feel about Optiver from a perspective of a, you know, veteran?
 
-##### Last-modified date: 2020.4.14, 8 p.m.
+##### Last-modified date: 2020.4.15, 4 p.m.
