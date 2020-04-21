@@ -276,6 +276,7 @@
 + **Subnet mask** is used to differentiate network address and host address from a given IP address
 + **A, B, C, D, E IP**
 + **the difference between IPv4 and IPv6**
++ Since IP does not have a inbuilt mechanism for sending error and control messages. It depends on  **ICMP** (Internet Control Message Protocol) to provide an error control.
 
 ### TCP
 
@@ -357,6 +358,24 @@
 ### Socket
 
 + **socket** is an endpoint for sending and receiving data between two applications in the network.
+
+### Cast
+
++ **Unicast** is a one-to-one transmission
+
++ **Broadcast** transmits data to all the hosts in a network
+
+  + **limited broadcast** transmits data to all the devices over the network that the sender resides.
+
+    Limited Broadcast Address (i.e. 255.255.255.255) is reserved for limited broadcast.
+
+  + **direct broadcast** transmits data to all the devices over the other network
+
+    Direct Broadcast Address translates all the Host ID part of bits to 1.
+
++ **Multicast** is like a broadcast that can cross subnets, but unlike broadcast does not touch all nodes.
+
+  Nodes have to subscribe to a multicast group to receive information. (IP address of Class D is used for multicast)
 
 ## Algorithms
 
