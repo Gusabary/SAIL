@@ -38,9 +38,9 @@
 + bachelor's degree 学士学位
 + master's degree 硕士学位
 
-## Some questions that may be asked
+## HR / behavioural interview
 
-### HR / behavioural interview
+### Self Introduction
 
 + **Tell me a little about yourself**
 
@@ -60,6 +60,8 @@
 
   In addition, I'd like to share some of my notes, discoveries and thoughts on my personal blog and GitHub around my learning.
 
+### Project
+
 + **Tell me about the project**
 
   It's a secutiry system for inspection and monitoring, which aims at the third-party application that may be risky. 
@@ -78,11 +80,7 @@
 
   What's more, this projcet also taught me how to collaborate effectively. It's a team project.
 
-+ **What's your future plan?**
-
-  My primary plan is to take this offer and join Optiver for summer internship.
-
-  To be more specific, my current thinking is to get engaged in the development work and constantly polish up my skills about software, english and cooperation.
+### Strengthens and Weaknesses
 
 + **What's your strengthens?**
 
@@ -94,19 +92,31 @@
 
   What's more, I am relatively flexible and able to handle change in my job responsibility because for new things or new technique, I am always curious and willing to learn and have a try.
 
+  And I think I'm not afraid to put forward my opinions and thoughts and I'm always willing to discuss with others.
+
 + **What's your weaknesses?**
 
-  Although I can keep flexible when I'm faced with new things or new technique, I might get nervous when talking to strangers, especially in English but this may not last too long if I try to get familiar with them.
+  Although I can keep flexible when I'm faced with new things or new technique and I'm not afraid to discuss with others, I might get nervous when talking to strangers, especially in English but this may not last too long if I try to get familiar with them.
 
-  Also sometimes I may be kind of obstinate and stubborn, especially when I think my point of view is right but also I am trying to correct it as I have more and more communication with others.
+  Also sometimes when I think my point of view is right, I may be kind of obstinate and stubborn, but also I am trying to correct it as I have more and more communication with others.
+
+### Future Plan and Academic Results
+
++ **What's your future plan?**
+
+  In the short term, my primary plan is to take this offer, join Optiver for summer internship and then get the return offer.
+
+  In the long term, my current thinking is to get engaged in the development work and constantly polish up my skills about software, english and cooperation and eventually grow up into an expert in software engineering and IT development.
+
+  When I chatted with a senior in our lab before, he said when he was an intern in Optiver once he encountered a bug and could not locate it immediately. At this time his mentor or someone else, I didn't remember clearly, came to help him. The mentor used gdb with a sequence of very quick operations and located the problem in just few seconds. I don't know if there is any exaggration, but indeed I want to grow as capable as him.
 
 + **Why do you want to work here?**
 
   Actually there are two reasons. 
 
-  The first is about Optiver itself. Optiver is in the top level of the industry of market maker, which means the great working environment, good payment and widely recgonized intership experience. Also there is a billingual environment, so I think both my techincal capability and English skills can get improved.
+  The first is about Optiver itself. Optiver is in the top level of the industry of market maker, which means the nice working environment, good payment, great opportunity to get improved and widely recgonized intership experience. Also there is a billingual environment, so I think both my techincal capability and English skills can get improved.
 
-  And on the other hand, there are some seniors of our lab in Optiver so compared to other companies Optiver is kind of more familier. And to some extent, getting this offer is a goal I set for myself so I don't want to let myself down.
+  And on the other hand I have my own considerations. There are some seniors of our lab in Optiver and I have been there several times to report our work in the cooperative project so compared to other companies Optiver is kind of more familier. And actually I found it's a really good match between the development work in Optiver and my acquired knowledge, technology stack and interests. And to some extent, getting this offer is a goal I set for myself so I don't want to let myself down.
 
   /* Optiver is a prop'rietary trading firm and market maker for various exchange-listed financial instruments.
 
@@ -116,31 +126,57 @@
 
   And as I learned more and more about what a developer's work is in Optiver, I found it really a good match between that and my acquired knowledge, technology stack and interests. So I hope and believe I can take the summer internship and become part of Optiver. */
 
++ **Why not consider going to graduate school?**
+
+  Actually until half a year ago, I was preparing for further study at graduate school. But when I was fortunetaly involved in the cooperative project, I found that I was really attracted by the application background and the pure fun of somewhat practical software. 
+
+  And considering that my academic results in the freshmen year are not that good, which means I may not get the qualification of postgraduate recommendation so I decided to work directly after graduation.
+
++ **Why are your academic results in the freshmen year not that good? And how about that now?**
+
+  Because in the freshmen year, I didn't pay much attention into my academic studies. I just enjoyed the release from high school. So I was ranked around 50%.
+
+  The turning point was at the first semester of my sophomore year. Our teacher held a class meeting and he asked us what our future plan is. He listed four choices, graduate recommedation, taking exams for graduate school, going abroad for further study and taking a job directly. And that was my first time to consider this kind of question seriously and I was shocked that I hadn't had any plan or consideration about this so since then I gradually paid more and more attention to my academic studies, met a senior who really taught me a lot and joined our lab in last summer, where I met many nice friends. In the recent two years, my academic ranking is about top fifteen.
+
++ **Why is the academic result in junior year is not better than sophomore year?**
+
+  Because in the sophomore year, my primary goal is to get the qualification of postgraduate recommendation, which means the academic results need to be very excellent. So I strove for every single grade point. But in the junior year, there was a shift in my thoughts that I wanted to take a job instead of graduate recommenadtion. And I found that striving for each single point had taken too much time and efforts that I almost had no time to improve myself in some other interesting fields or aspects that are not very related to the course itself such as diving deeper into linux and cpp, and consolidating the knowledge base of computer system and network.
+
+  I don't mean the academic result is not important but if you decided to take a job instead you could spare some time to learn something more interestring or more practical.
+
+### Impressive experience
+
 + **an impressive experience or difficulty (Database pre)**
 
   S: In my second semester of sophomore, we had a course presentation of Database. 
 
-  T: We were a team of four members but only one could take the presentation. At that time one of them, called Yuan and I both wanted to take that chance and we both thought that the other one couldn't be qualified. Because, you know, our score was determined by the performance of the one speaking.
+  T: We were a team of four members but only one could take the presentation. At that time one of them, called Yuan and I both wanted to take that chance and we both thought that we would perform better than each other. Because, you know, our score was determined by the performance of the one speaking.
 
-  A: So we came up an idea. We both spoke to another member and let him make the decision which one can take the chance to give the presentation. And finally I won and I did make a good job.
+  A: So we came up an idea. We both spoke to another member and let him make the decision which one could take the chance to give the presentation. And finally I won and I did make a good job.
 
   R: So from that experience, I understood deeply that the chances you strive for and the ones others give you or you get easily are really very different. The former is much more precious. So since then, for the chance I wanna take, I may act like, kind of, more ambitious and more active.
 
 + **Wandering D19**
 
-  In last summer semester, authority of our university decided to rebuild our dormitory building and ordered us who lived in this dormitory to move to another building. This decision looks like nothing special but the problem is that the authority didn't ask for our students' advice and opinions. It just put up a notice in our domitory, which says this building would be rebuilt and you students should move to another dormitory in next semester. What is more annoying is that when we asked for an explanation why the chosen building is our dormitory, why not rebuilding after our graduiation and what's the purpose for rebuilding, the authority didn't give a clear explanation. Because at that time, it was reported that the rebuilding is for ZhiYuan Academy. But anyway it might be rumors. So we just felt kind of discriminated against and we decided to do something. Because for those students who didn't have summer semester, it means when they came back to campus, their dormitory building would be gone. That's ridiculous.
+  In last summer semester, authority of our university decided to rebuild our dormitory building and ordered us who lived in this dormitory to move to another building. This decision sounds like nothing special but the problem is that the authority didn't ask for our students' advice and opinions. It just put up a notice in our domitory, which says this building would be rebuilt and you students should move to another dormitory in next semester. What is more annoying is that when we asked for an explanation why the chosen building is our dormitory, why not rebuilding after our graduiation and what the purpose is for rebuilding, the authority didn't give a clear explanation. Because at that time, it was reported that the rebuilding was for ZhiYuan Academy. But it might be rumors. Anyway we just felt kind of discriminated against and we decided to do something. Because for those students who didn't have summer semester, it means when they came back to campus, their dormitory building would be gone. That's ridiculous.
 
-  At the very beginning we collected students' opinions and attitude and wrote a joint letter to the authority, in which we declared that we needed an explanation and some help in the process of moving house. But there was no response. And then we contacted the student life park and had a talk with them. We said if there was still not any response, we might public the joint letter and seek help from public voice. And just that night, another notice was put up in our domitory, which said the decision of rebuilding was postponed until our graduation.
+  So we collected students' opinions and attitude and wrote a joint letter to the authority, in which we declared that we needed an explanation and some necessary help in the process of moving house if there must be a rebuilding. But there was no response. And then we contacted the student life park and had a talk with them. We said if there was still not any response, we might public the joint letter and seek help from public voice. And just that night, another notice was put up in our domitory, which said the rebuilding would be postponed until our graduation.
 
-  I fortunately took part in the process. I learnt from this event that authority is not always right or always unchallengeable. When you think some decisions are made casually, you can and you should raise your  questions and challenge it. Our students' power or capability should never be ignored or underestimated.
+  I fortunately took part in the process. When I heard about this news that the rebuilding was postponed, I was still translating the voice recording of our talk with student like park. Looking at our dormitory qq group was filled with thanks, I felt it's all worth it.
+
+  I learnt from this event that authority is not always right or always unchallengeable. When you think some decisions are made casually, you can and you should raise your questions and challenge it. Our students' power or capability should never be ignored or underestimated.
 
   We even created a repository on GitHub to commemorate this event.
 
 + **focus on front-end vs. k8s**
 
-  In last summer semester, our project was to develop a mobile application with microservice architecture and my responsibility was building the infrastructure and developing front-end. At the very beginnnig, our infrastructure was just based on Spring Cloud and Docker. There was no problem until about the third week. At that time, we found that there existed some minor problems like the deployment was inconvinient and it's difficult to maintain the replicated service. So I suggested that we should use Kubernetes to solve these problems. But my teammates thought the current architecture was not that bad and I should focus on the development of front-end. And we argued for several times. I insisted that the architecture needed to be refactored although the problems now were minor. We should prepare in advance. But it was useless. They were not convinced. They thought refactoring the architecture would affect the progress of front-end.
+  In last summer semester, our project was to develop a mobile application with microservice architecture and my responsibility was building the infrastructure and developing front-end. At the very beginnnig, our infrastructure was just based on Spring Cloud and Docker. There was no problem until about the third week. At that time, we found that there existed some minor problems such as the deployment was inconvinient and it's difficult to maintain the replicated service. So I suggested that we should use Kubernetes to solve these problems. But my teammates thought the current architecture was not that bad and I should focus on the development of front-end. 
 
-  So I just spent the whole weekend learning Kubernetes and refactoring and successfully gave the new architecture on Monday. From this I learnt that many times people will not be convinced unless you really do it rather than just say it and most of the time you need to believe your instinct, stick to your opinions and make the effort. And with several iterations, our architecture became a highlight in the final presentation.
+  We discussed and argued for several times. I insisted that the architecture needed to be refactored although the problems now were minor. We should prepare in advance. But it was useless. They were not convinced. They thought refactoring the architecture would affect the progress of front-end.
+
+  So I just spent the whole weekend learning Kubernetes and refactoring and successfully gave the new architecture on Monday. 
+
+  From this I learnt that many times people will not be convinced unless you really do it rather than just say it and most of the time you need to believe your instinct, stick to your opinions and make the effort. And with several iterations, our architecture became a highlight in the final presentation.
 
 + **an impressive course (Compiler)**
 
@@ -150,38 +186,25 @@
 
   It's challenging but rewarding. On the one hand, the course content is really too much and difficult to understand; but on the other hand, when I finished the course and completed the course project, I felt totally accomplished and indeed, Compiler taught me a lot of, you know, low-level or fundamental knowledge about computer system that really benefits me.
 
-  There is one thing which really impressed me is that the task of lab five of Compiler is to complete all the components except register allocation, which is the most challenging one. But the fact is that a compiler cannot work without register allocation so the actual solution is to implement a naive version of register allocation but at that time I thought instead of this, I'd rather implement the real one directly, which means I would work on lab five and six together. However the task is a little bit more difficult than I thought so I stayed up really late to complete them just before deadline, luckily.
+  One thing which really impressed me is that the task of lab five of Compiler is to complete all the components except register allocation, which is the most challenging one. But the fact is that a compiler cannot work without register allocation so the actual solution is to implement a naive version of register allocation but at that time I thought instead of this, I'd rather implement the real one directly, which means I would work on lab five and six together. However the task is a little bit more difficult than I thought so I stayed up really late to complete them just before deadline, luckily.
 
   And that decision helped me save the valuable time before final exam because I had completed lab six with lab five.
 
-+ **Why not consider going to graduate school?**
-
-  Actually until half a year ago, I was preparing for further study at graduate school. But when I was fortunetaly involved in the cooperative project between Optiver and SJTU, I found that I was really attracted by the application background and the pure fun of somewhat practical software. And considering that my academic results in the freshmen year is not that good, which means I may not become a graduate student without examination so I decided to work directly after graduation.
-
-+ **Why are your academic results in the freshmen year not that good? And how about that now?**
-
-  Because in the freshmen year, I didn't pay much attention into my academic studies. I just enjoyed the release from high school. So I was ranked around 50%.
-
-  The turning point was at the first semester of my sophomore year. Our teacher held a class meeting and he asked us what out future plan is. He listed four choices, graduate recommedation, taking exams for graduate school, going abroad for further study and taking a job directly. And that was my first time to consider this kind of question seriously and I was shocked that I hadn't had any plan or consideration about this so since then I gradually paid more and more attention to my academic studies, met a senior who really taught me a lot and joined our lab in last summer, where I met many nice friends. In the recent two years, my academic ranking is about top fifteen.
-
-+ **Why is the academic result in junior year is not better than sophomore year?**
-
-  Because in the sophomore year, my primary goal is to get the qualification of postgraduate recommendation, which means the academic results need to be very excellent. So I strove for every single grade point. But in the junior year, there was a shift in my thoughts that I wanted to take a job instead of graduate recommenadtion. And I found that striving for each single point had taken too much time and efforts that I almost had no time to improve myself in some other interesting fields or aspects that are not very related to the course itself such as diving deeper into linux and cpp, and consolidating the knowledge base of computer system and network.
-
-  I don't mean the academic result is not important but if you decided to take a job instead you could spare some time to learn something more interestring or more practical.
+### Ending
 
 + **Out of all the other candidates, why should we hire you?**
 
 + **Have you got any offers from other companies?**
 
-  Yeah actually, I have got offers from sixie, meituan and bytedance. But I declined those from meituan and bytedance because they told me I needed to reply in just few days. Of course I would not give up the opportunity at Optiver so I declined them directly.
+  Yeah actually, I have got offers from sixie, meituan, bytedance and tencent. But I declined those from meituan and bytedance because they told me I needed to reply in just few days. Of course I would not give up the opportunity at Optiver so I declined them directly.
 
 + **Do you have any question?**
 
-  + When will I take the next round of interview if I pass this one? next week? or just after a few days?
+  + // When will I take the next round of interview if I pass this one? next week? or just after a few days?
   + What is the top quality the candidate needs to have / in order to become a best performer in the following interviews and as a developer in Optiver?
-  + As far as I know, Optiver doesn't provide dinner, so what if someone works overtime. Does he need to have dinner outside?
+  + // As far as I know, Optiver doesn't provide dinner, so what if someone works overtime. Does he need to have dinner outside?
   + Could you give me any evaluation or suggestions about my performance in today's interview?
   + Could you talk a little about how you feel about Optiver from a perspective of a, you know, veteran?
+  + What do you think I should learn in the following days before summer?
 
-##### Last-modified date: 2020.4.21, 8 p.m.
+##### Last-modified date: 2020.4.22, 7 p.m.
