@@ -60,6 +60,12 @@
 
   In addition, I'd like to share some of my notes, discoveries and thoughts on my personal blog and GitHub around my learning.
 
++ **How much do you know about Optiver?**
+
+  I know Optiver is a leading global trading firm and market maker for various financial instruments.
+
+  But as far as I know, IT department in Optiver is not in the edge or not important. It's also a core department in Optiver rather than just provide support for other departments.
+
 ### Project
 
 + **Tell me about the project**
@@ -136,7 +142,7 @@
 
   Because in the freshmen year, I didn't pay much attention into my academic studies. I just enjoyed the release from high school. So I was ranked around 50%.
 
-  The turning point was at the first semester of my sophomore year. Our teacher held a class meeting and he asked us what our future plan is. He listed four choices, graduate recommedation, taking exams for graduate school, going abroad for further study and taking a job directly. And that was my first time to consider this kind of question seriously and I was shocked that I hadn't had any plan or consideration about this so since then I gradually paid more and more attention to my academic studies, met a senior who really taught me a lot and joined our lab in last summer, where I met many nice friends. In the recent two years, my academic ranking is about top fifteen.
+  The turning point was at the first semester of my sophomore year. Our teacher held a class meeting and he asked us what our future plan is. He listed four choices, graduate recommedation, taking exams for graduate school, going abroad for further study and taking a job directly. And that was my first time to consider this kind of question seriously and I was shocked that I hadn't had any plan or consideration about this so since then I gradually paid more and more attention to my academic studies, met a senior who really taught me a lot and joined our lab in last summer, where I met many nice friends. In the recent two years, my academic ranking is about top ten.
 
 + **Why is the academic result in junior year is not better than sophomore year?**
 
@@ -205,6 +211,6 @@
   + // As far as I know, Optiver doesn't provide dinner, so what if someone works overtime. Does he need to have dinner outside?
   + Could you give me any evaluation or suggestions about my performance in today's interview?
   + Could you talk a little about how you feel about Optiver from a perspective of a, you know, veteran?
-  + What do you think I should learn in the following days before summer?
+  + What do you think I should learn in the following months before summer?
 
 ##### Last-modified date: 2020.4.22, 7 p.m.
