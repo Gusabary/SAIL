@@ -100,7 +100,26 @@
   void f(int &&x) {}
   ```
 
-+ 完美转发是说，当形参是模板类型的右值引用时，可以根据实参是左值还是右值做不同推断：
++ 完美转发利用了 c++ 标准中的两个机制：reference collapsing 和 special type deduction：
+
+  + reference collapsing 是说对于 `T&` 或是 `T&&` 这样的类型，`T` 有可能也是个引用，所以需要有一个规则将引用的引用 collapse 成引用：
+
+    + `T& &` -> `T&`
+    + `T& &&` -> `T&`
+    + `T&& &` -> `T&`
+    + `T&& &&` -> `T&&`
+
+    简言之，只要有 `&`，collapse 的结果就是 `&`
+
+  + special type deduction 是说对于 `T&&` 这样的类型，会进行一次类型推断，如果是左值（例如 int 左值）则将 `T` 推断为 `int&`，所以 `T&&` 就是 `int& &&` 即 `int &`；如果是右值（例如 int 右值）则将 `T` 推断为 `int`，所以 `T&&` 就是 `int&&`。
+
+    所以 `T&&` 又叫 forwarding reference（也叫 universal reference）
+
+    需要注意的是 `int`, `int&`, `int&&` 都是左值（右值引用 ≠ 右值）
+
+  *[reference](<https://eli.thegreenplace.net/2014/perfect-forwarding-and-universal-references-in-c>)*
+
++ 完美转发利用上述两个机制在不用重载的情况下区分出入参的左右值属性：
 
   + 实参是左值时，推断为左值引用
   + 实参是右值时，推断为普通类型
@@ -116,7 +135,9 @@
   f(1);  // void f<int>(int &&x)
   ```
 
-  再配合上 `std::forward()` 函数，保留 x 的左 / 右值属性，做到完美转发。（forward 保留左 / 右值属性，而 move 强转成右值）
+  再配合上 `std::forward()` 函数，保留 x 的左 / 右值属性，做到完美转发。（forward 保留左 / 右值属性，而 move 强转成右值），事实上保留左右值属性的说法并不准确（因为右值引用仍然是左值），应该是将左值引用变为左值，将右值引用变为右值。
+
+  如果没有 forward，直接写 `h(x)`，那么 x 会被认为是左值，即使有可能是右值引用（事实上右值引用也是左值），所以 forward 的作用在于将右值引用变成右值（左值被作用于一个表达式变成了右值）
 
 ## Namespace
 
@@ -182,7 +203,11 @@ C++ 中 using 有三种用法：
 
 + using 指令：引入命名空间，使某个 namespace 中所有变量在当前作用域中可见。
 
-+ 类型别名：类似 typedef，但比 typedef 强的地方在于可以定义模板类型的别名：
+  ```c++
+  using namespace std;
+  ```
+
++ 类型别名（type alias）：类似 typedef，但比 typedef 强的地方在于可以定义模板类型的别名：
 
   ```c++
   template<typename Val>
@@ -195,7 +220,7 @@ C++ 中 using 有三种用法：
 
   ```c++
   template<typename Val>
-  struct int_map{
+  struct int_map {
       typedef std::map<int, Val> type;
   };
   
@@ -248,7 +273,7 @@ C++ 中 using 有三种用法：
   + 如果表达式是左值，则推断结果是该值类型的左值引用
   + 如果以上都不是，则推断结果就是表达式的类型
 
-  所谓没有带括号的变量，是指 decltype 求的是变量本身的类型，因为带了括号之后 decltype 求的就是变量外面有个括号所形成的表达式的类型了，两者是不一样的，前者是变量本身（第一条规则），后者是左值表达式（第二条规则）：
+  所谓没有带括号的变量，是指 decltype 求的是变量本身的类型，因为带了括号之后 decltype 求的就是变量外面有个括号所形成的表达式的类型了，两者是不一样的，前者是变量本身（第一条规则），后者是左值表达式（第三条规则）：
 
   ```c++
   int a;
@@ -283,4 +308,4 @@ C++ 中 using 有三种用法：
   auto f = []() {};
   ```
 
-##### Last-modified date: 2020.4.7, 9 a.m.
+##### Last-modified date: 2020.5.4, 8 p.m.
