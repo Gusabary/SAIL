@@ -308,4 +308,123 @@ C++ 中 using 有三种用法：
   auto f = []() {};
   ```
 
-##### Last-modified date: 2020.5.4, 8 p.m.
+## Multi-threading
+
+### std::thread
+
++ `std::thread` 作为一个类，其构造函数的作用是创建一个新线程并执行，构造函数有一个可变长的参数列表，第一个参数为一个 callable，后面的参数是该 callable 的入参。
+
++ 有三种 callable：
+
+  + 函数指针：
+
+    ```c++
+    void f() {}
+    std::thread t(f);
+    ```
+
+  + Functor：
+
+    ```c++
+    class A {
+        void operator() {}
+    };
+    std::thread t(A());
+    ```
+
+  + lambda 表达式：
+
+    ```c++
+    auto f = []() {};
+    std::thread t(f);
+    ```
+
++ `std::thread` 类有一个 `join` 方法，阻塞当前线程直到目标线程执行完成（别忘了调用 `join` 方法以回收线程）。
+
++ *[reference](<https://www.geeksforgeeks.org/multithreading-in-cpp/>)*
+
+### std::promise & std::future
+
++ `std::promise` 和 `std::future` 是两个类模板，它们提供了一种线程之间**同步数据**的方法，即线程 a 等待线程 b set 了某个值以后才继续执行。
+
++ 一种常见的使用方法：
+
+  ```c++
+  #include <iostream>
+  #include <future>
+  
+  void f(std::promise<int> &&p) {
+      p.set_value(5);
+  }
+  
+  int main() {
+      std::promise<int> p;
+      std::future<int> fu = p.get_future();
+      
+      std::thread t(f, std::move(p));
+      std::cout << fu.get() << std::endl;
+      
+      t.join();
+      return 0;
+  }
+  ```
+
+  `promise` 和 `future` 成对使用，通过 `promise` 的 `get_future()` 方法可以获得其对应的 `future`。当主线程调用 `fu.get()` 时会阻塞住，直到线程 t 中 `p.set_value()` 被执行。也就是说将要阻塞的线程要持有一个 `future` 对象（**将来**某个时刻该处的值会被设置），而负责设置该对象值的线程要持有一个 `promise` 对象（**承诺**会设置该处的值）。
+
++ 需要注意的是 `promise` 的拷贝构造是被禁用掉的，所以创建线程 t 时不能写成 `std::thread t(f, p);`，因为 `thread` 的构造函数经过一连串的函数调用后会在 `tuple` 文件的某处完美转发到一个构造 `promise` 的地方。所以如果创建线程时直接传入 `p` 的话会调用到 `promise` 的拷贝构造而报错。正确的做法是传入 `move(p)`，这样最终会调到 `promise` 的移动构造。（事实上 `future` 的拷贝构造也是被禁掉的）
+
+  当然也可以传入指向 `p` 的指针。
+
++ 当需要有多个 `future` 对应一个 `promise` 时，可以使用 `std::shared_future`，`shared_future` 允许拷贝构造，也允许多次 `get`。
+
++ *references*:
+
+  + [promise / future](https://thispointer.com/c11-multithreading-part-8-stdfuture-stdpromise-and-returning-values-from-thread/)
+  + [shared future](<https://zh.cppreference.com/w/cpp/thread/shared_future>)
+
+### std::async
+
++ `std::async` 是一个函数模板，提供了一种**异步执行**某个函数的方法，第一个参数为 callable，之后的可变长参数列表为该 callable 的入参。（并非所有情况都会异步，和 launch policy 有关）
+
+  `std::async` 还有一个重载版本，第一个参数为 launch policy，第二个参数为 callable，之后为 callable 的入参。
+
++ `std::async` 的返回值类型是 `std::future`，其模板参数类型为 `async` 入参 callable 的返回值类型。
+
++ 一种常见的使用方法：
+
+  ```c++
+  #include <iostream>
+  #include <future>
+  
+  int f() {
+      return 2;
+  }
+  
+  int main() {
+      std::future<int> fu = std::async(f);
+      std::cout << fu.get() << std::endl;
+      return 0;
+  }
+  ```
+
++ launch policy 有两种：
+
+  + `async`：保证**异步**行为，即创建一个新线程来执行 callable。
+  + `deferred`：在调用 `async` 返回的 `future` 的 `get()` 方法时，**同步**地执行 callable。
+
+  如果不指定 policy，那么采用 `async` 还是 `deferred` 将取决于系统的负载，因为 `async` 异步、快，但是需要创建新线程，而 `deferred` 同步、慢，但是不需要创建新线程。
+
++ *references*:
+
+  + <https://blog.csdn.net/lijinqi1987/article/details/78909479>
+  + <https://stackoverflow.com/questions/12620186/futures-vs-promises>
+
+## template
+
++ 模板的定义要和声明放在一起（不能分别放在头文件和源文件中），因为编译器在处理模板变量时需要知道模板是怎么定义的。
+
+## exception
+
+
+
+##### Last-modified date: 2020.5.12, 7 p.m.
