@@ -459,4 +459,74 @@ C++ 中 using 有三种用法：
   + <https://www.tutorialspoint.com/cplusplus/cpp_exceptions_handling.htm>
   + <https://www.geeksforgeeks.org/exception-handling-c/>
 
+## friend
+
++ friend 即友元，提供了一种使类的 protected 或 private 成员在类外也能被访问的方法，有友元类和友元函数两种使用方式。
+
++ 友元类：使其他类能访问本类中的 protected 和 private 成员。
+
+  ```c++
+  class A {
+  private:
+      int a;
+      friend class B;
+  }; 
+    
+  class B { 
+  public:
+      void showA(A& x) { 
+          std::cout << x.a << std::endl; 
+      } 
+  }; 
+  ```
+
++ 友元函数：使其他函数（可以是别的类的成员函数，也可以是全局函数）能访问本类中的 protected 和 private 成员。
+
+  ```c++
+  class B; 
+    
+  class A { 
+  public: 
+      void showB(B&); 
+  }; 
+    
+  class B { 
+  private: 
+      int b; 
+      friend void A::showB(B& x);
+  }; 
+    
+  void A::showB(B& x) { 
+      std::cout << x.b << std::endl; 
+  }  
+  ```
+
++ friend 关系不是相互的，A 类能访问 B 类私有成员，B 不一定能访问 A 的。
+
++ friend 关系不被继承，这一点需要详细说明一下（假设父类 A 有友元 C，子类 B 继承自 A）：
+
+  + A 中定义的 protected 或 private 成员作为子对象的一部分存在 B 对象中，所以对 C 还是可见的。
+  + B 中新定义的 protected 或 private 成员（即 A 中没有的成员）对 C 是不可见的，此即为友元关系不被继承。
+
+  ```c++
+  class A {
+  private:
+      int va;
+      friend void f();
+  };
+  
+  class B : public A {
+  protected:
+      int vb;
+  };
+  
+  void f() {
+      B b;
+      std::cout << b.va << std::endl;  // ok
+      std::cout << b.vb << std::endl;  // error
+  }
+  ```
+
++ *[reference](<https://www.geeksforgeeks.org/friend-class-function-cpp/>)*
+
 ##### Last-modified date: 2020.5.13, 3 p.m.
