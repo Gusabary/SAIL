@@ -425,6 +425,38 @@ C++ 中 using 有三种用法：
 
 ## exception
 
++ 和 C 相比，C++ 中引入了 exception handling，好处大概有如下几点：
 
+  + 将正常代码和异常处理代码分离，C 中经常用 if 语句去处理异常，这导致代码可读性比较差。
+  + 异常处理可以跨函数调用，不用像 C 那样在中间每一层函数调用时加 if 判断。
+  + 可以抛出 basic type，也可以抛出对象，这样就允许将多种异常组织成一个更容易理解的结构。
 
-##### Last-modified date: 2020.5.12, 7 p.m.
++ try 语句块中出现 throw，抛出异常后由 catch 语句块接住。
+
++ throw 后面跟着一个**表达式**，交给哪一个 catch 语句块来处理由该表达式的**类型**决定（catch 后面的括号中指明了该 catch 语句块处理何种类型的异常，特殊地，`...` 表示捕获所有类型的异常）
+
++ 在 catch 语句块中可以写 `throw;` 来重新抛出异常，常用于该 catch 语句块只处理该异常的一部分的场景。
+
++ 在抛出异常执行流转移到 catch 语句块前，try 语句块中的对象会被析构。
+
++ 对于一个函数来说，可以将在函数内抛出而该函数没有处理的异常以 exception specification 的形式写在函数签名后面：
+
+  ```c++
+  void fun(int *ptr, int x) throw (int *, int)
+  { 
+      if (ptr == NULL) 
+          throw ptr; 
+      if (x == 0) 
+          throw x; 
+      /* Some functionality */
+  } 
+  ```
+
++ C++ 也定义了一些继承自 `std::exception` 的标准异常。
+
++ *references:*
+
+  + <https://www.tutorialspoint.com/cplusplus/cpp_exceptions_handling.htm>
+  + <https://www.geeksforgeeks.org/exception-handling-c/>
+
+##### Last-modified date: 2020.5.13, 3 p.m.
