@@ -421,7 +421,140 @@ C++ 中 using 有三种用法：
 
 ## template
 
-+ 模板的定义要和声明放在一起（不能分别放在头文件和源文件中），因为编译器在处理模板变量时需要知道模板是怎么定义的。
++ 模板在**编译时刻**展开，每有一个不同的模板实参列表，就会有一个对应的模板实例。
+
+  所以模板的定义要和声明放在一起（不能分别放在头文件和源文件中），因为编译器在实例化模板时需要知道模板是怎么定义的。
+
+  如果函数模板中有 static 变量，那么实例化出来的每个模板函数都有自己独立的 static 变量。*[reference](<https://www.geeksforgeeks.org/templates-and-static-variables-in-c/>)*
+
++ 一个小例子：
+
+  `a.h`：
+
+  ```c++
+  template <class T>
+  class A {
+  public:
+      void f();
+      void g();
+  };
+  
+  template <class T>
+  void A<T>::f() {}
+  ```
+
+  `main.cpp`：
+
+  ```c++
+  #include "a.h"
+  
+  int main() 
+  {
+      A<int> a;
+      a.f();
+      a.g();
+      return 0;
+  }
+  ```
+
+  `a.cpp`：
+
+  ```c++
+  #include "a.h"
+  
+  template <class T>
+  void A<T>::g() {}
+  ```
+
+  然后用 `g++ main.cpp a.cpp` 编译时会报 `undefined reference to A<int>::g()` 的错误。因为正如之前所说，模板在编译时刻展开，所以到了链接的时候，`main.cpp` 的编译单元里面调用的是 `A<int>::f()` 和 `A<int>::g()`。而前者因为 `A<T>::f()` 定义在本单元中，所以会实例化一个 `A<int>::f()`，但是对后者来说 `a.cpp` 的编译单元中只有一个 `A<T>::g()`，并没有实例化 `A<int>::g()`（在编译 `a.cpp` 时没有调用 `A<int>::g()` 所以自然不会实例化它，即编译时刻对别的编译单元内的函数调用是不可见的），所以链接的时候会报上述错误。
+
+  如果 `a.cpp` 中写成这样就没问题（手动实例化）：
+
+  ```c++
+  #include "a.h"
+  
+  template <>
+  void A<int>::g() {}
+  ```
+
++ 在类模板中定义函数模板：
+
+  ```c++
+  template <class T>
+  class A {
+  public:
+      template <class K>
+      void f();
+  };
+  
+  template <class T> 
+  template <class K>
+  void A<T>::f() {}
+  ```
+
++ *[reference](<https://www.geeksforgeeks.org/templates-cpp/>)*
+
+### template specialization
+
++ template specialization 是说对于一个模板，我们可以为某个特定的类型指定不同的版本。
+
+  函数模板：
+
+  ```c++
+  template <class T>
+  void f() {}
+  
+  template <>
+  void f<int>() {}
+  ```
+
+  类模板：
+
+  ```c++
+  template <class T>
+  class A {
+  };
+  
+  template <>
+  class A<int> {
+  };
+  ```
+
+  编译器会选择最 specialized 的一个版本进行展开。
+
+  *[reference](<https://www.geeksforgeeks.org/template-specialization-c/>)*
+
++ 如果一个函数模板定义在一个类模板中，那么似乎只有当类模板被 specialized 以后里面的函数模板才能 specialized，即这样的写法似乎不行：
+
+  ```c++
+  template <class T> 
+  template <>
+  void A<T>::f<int>() {}
+  ```
+
+  *[reference](<https://stackoverflow.com/questions/4994775/c-specialization-of-template-function-inside-template-class>)*
+
+### non-type arguments
+
++ 模板参数也可以不是类型，但是一定要是常量：
+
+  ```c++
+  #include <iostream> 
+     
+  template <int x> 
+  void f() {
+      std::cout << x << std::endl;
+  }
+  
+  int main() {
+      f<3>();
+      return 0;
+  } 
+  ```
+
++ non-type arguments 和 enum 一起使用可以用来实现 template metaprogramming，关键在于编译器每看到一种新的模板参数列表，就会实例化一个新的模板实例（这些都是在编译时刻完成的）。
+
+  *[reference](<https://www.geeksforgeeks.org/template-metaprogramming-in-c/>)*
 
 ## exception
 
@@ -529,4 +662,4 @@ C++ 中 using 有三种用法：
 
 + *[reference](<https://www.geeksforgeeks.org/friend-class-function-cpp/>)*
 
-##### Last-modified date: 2020.5.13, 3 p.m.
+##### Last-modified date: 2020.5.14, 5 p.m.
