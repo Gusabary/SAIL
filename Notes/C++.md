@@ -662,4 +662,141 @@ C++ 中 using 有三种用法：
 
 + *[reference](<https://www.geeksforgeeks.org/friend-class-function-cpp/>)*
 
-##### Last-modified date: 2020.5.14, 5 p.m.
+## Type casting
+
+C++ 提供了四种用于类型转换的关键字：`dynamic_cast`, `static_cast`, `reinterpret_cast` 和 `const_cast`。
+
+*[reference](<http://www.cplusplus.com/doc/oldtutorial/typecasting/>)*
+
+### dynamic_cast
+
++ `dynamic_cast` 只能用于转换指向对象的指针或者对象的引用（对象所属的类需要有继承关系）。
+
++ 在有继承关系的多个类之间，向上转型是合法的，向下转型当且仅当有**正确的多态**时是合法的，侧向转型可以理解成先向下转型再向上转型（双重继承）
+
+  这里的合法是指 `dynamic_cast` 的返回值是转型后的对象的指针或引用，而不是 null 或者抛出 `bad_cast` 异常。
+
++ 考虑这样一种情景：
+
+  ```c++
+  class A {};
+  class B : public A {};
+  class C : public A {};
+  class D : public B, public C {};
+  
+  // 向上转型，合法
+  B *b = new B;
+  A *a = dynamic_cast<A *>(b);
+  
+  // 向下转型，当有正确的多态时合法
+  A *a = new B;  // 正确的多态
+  B *b = dynamic_cast<B *>(a);
+  
+  // 侧向转型，合法与否的关键在于向下转型是否合法
+  B *b = new D;  // 正确的多态
+  C *c = dynamic_cast<C *>(b);
+  // 这一步理解上可以拆成先向下转型，在向上转型:
+  // D *d = dynamic_cast<D *>(b);  // 多态正确的话是可以转的
+  // C *c = dynamic_cast<C *>(d);  // 无论如何都是可以转的
+  ```
+
+  也可以这么理解，转换后的对象不能比转换前的对象拥有更多信息，所以从子类转换到父类是安全的。
+
+  在向下转型时有可能需要在 A 类中加一个虚析构函数使 A 具有多态性，否则会报 `source type is not polymorphic` 这样的错误。*[reference](<https://stackoverflow.com/questions/15114093/getting-source-type-is-not-polymorphic-when-trying-to-use-dynamic-cast>)*
+
++ 向下转型需要检查多态正确性这件事情，是需要 RTTI 来完成的，如果在编译时禁掉了 RTTI （`-fno-rtti`）就不允许向下转型了（即使多态正确也不行，因为没有信息来检查多态是否正确）
+
+### static_cast
+
++ `static_cast` 可以用于转换指向对象的指针或者对象的引用（对象所属的类需要有继承关系）。
+
++ 在有继承关系的多个类之间，向上转型和向下转型都是合法的，因为 `static_cast` 不会像 `dynamic_cast` 那样做安全检查，而是将保证正确性这一责任交给程序员。
+
+  ```c++
+  class A {};
+  class B : public A {};
+  
+  // 向下转型，即使没有正确的多态也是合法的
+  A *a = new A;  // 不正确的多态
+  B *b = static_cast<B *>(a);
+  ```
+
++ `static_cast` 也可以用来进行 C 风格**隐式转换**下合法的转换：
+
+  ```c++
+  double d = 3.1415926;
+  
+  // 合法，因为 int i = d; 是合法的
+  int i = static_cast<int>(d);
+  
+  // 不合法，因为 int a = &d; 是不合法的（尽管 int a = (int)&d; 是合法的）
+  int a = static_cast<int>(&d);
+  ```
+
+### reinterpret_cast
+
++ `reinterpret_cast` 可以用于转换任意两个指针或引用（不必有继承关系），甚至被转换或转换到的变量可以是 int 这样的类型而不必是指针。
+
++ 它只是对某个地址处的数据用不同的类型解释了一遍：
+
+  ```c++
+  class A {};
+  class B {};  // 不必有继承关系
+  A * a = new A;
+  B * b = reinterpret_cast<B*>(a);
+  ```
+
+### const_cast
+
++ `const_cast` 可以将常量转成非常量，将非常量转成常量。
+
++ 例如将某个常量作为入参传递给一个接受非常量的函数：
+
+  ```c++
+  #include <iostream>
+  using namespace std;
+  
+  void print (char * str) {
+    	cout << str << endl;
+  }
+  
+  int main () {
+      const char * c = "sample text";
+      print (const_cast<char *> (c));
+      return 0;
+  }
+  ```
+
+### typeid
+
++ `typeid` 可以用来获取一个表达式的类型，其返回值为 `type_info` 类型的对象。
+
+  `type_info` 类重载了 `==` 和 `!=` 运算符，可以用来比较两个类型是否一样。该类还提供了 `name()` 方法用于获取字符串形式的类型名称。
+
++ 但是 `name()` 方法的返回值是 compiler dependent 的，比如我用的 `g++` 编译下面这段程序，`class CBase *` 就会输出成 `P5CBase`，相应地，`class CBase` 是 `5CBase`，`class CDerived` 是 `8CDerived`。
+
+  ```c++
+  #include <iostream>
+  #include <typeinfo>
+  #include <exception>
+  using namespace std;
+  
+  class CBase { virtual void f(){} };
+  class CDerived : public CBase {};
+  
+  int main () {
+      try {
+          CBase* a = new CBase;
+          CBase* b = new CDerived;
+          cout << "a is: " << typeid(a).name() << '\n';  		// class CBase *
+          cout << "b is: " << typeid(b).name() << '\n';		// class CBase *
+          cout << "*a is: " << typeid(*a).name() << '\n';		// class CBase
+          cout << "*b is: " << typeid(*b).name() << '\n';		// class CDerived
+      } catch (exception& e) { cout << "Exception: " << e.what() << endl; }
+      return 0;
+  }
+  ```
+
+  需要注意的一点是，当 `typeid` 的参数为指针时，返回值为指针的声明时类型；而当 `typeid` 的参数为对象时，返回值为对象的运行时类型（即需要考虑多态性）
+
+##### Last-modified date: 2020.5.15, 10 p.m.
