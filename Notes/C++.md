@@ -799,4 +799,17 @@ C++ 提供了四种用于类型转换的关键字：`dynamic_cast`, `static_cast
 
   需要注意的一点是，当 `typeid` 的参数为指针时，返回值为指针的声明时类型；而当 `typeid` 的参数为对象时，返回值为对象的运行时类型（即需要考虑多态性）
 
-##### Last-modified date: 2020.5.15, 10 p.m.
+### *_pointer_cast
+
++ `*_pointer_cast` 效果类似 `*_cast`，只是前者作用于 `shared_ptr` 而非裸指针。
+
++ 使用方法类似：
+
+  ```c++
+  std::shared_ptr<A> foo = dynamic_pointer_cast<A>(sp);
+  A *foo = dynamic_cast<A *>(sp.get());
+  ```
+
++ `dynamic_pointer_cast`, `static_pointer_cast` 以及 `const_pointer_cast` 在 C++11 就引入了，而 `reinterpret_pointer_cast` 到 C++17 才引入。
+
+##### Last-modified date: 2020.5.16, 10 a.m.
