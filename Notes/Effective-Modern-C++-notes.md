@@ -283,4 +283,222 @@ auto type deduction 和 template type deduction 类似，只有一点不同。
   f(a);  // error，a 是 int，不能转换到指针
   ```
 
-##### Last-modified date: 2020.5.20, 5 p.m.
+### Item 9  Prefer alias declarations to typedefs
+
++ C++11 引入了 alias declarations，和 `typedef` 相比，它支持模板别名：
+
+  ```c++
+  template<typename T>
+  using MyAllocList = std::list<T, MyAlloc<T>>; 
+  
+  MyAllocList<Widget> lw;
+  ```
+
+  而 `typedef` 想使用模板的话需要在外面包一层 struct：
+
+  ```c++
+  template<typename T>
+  struct MyAllocList {
+   	typedef std::list<T, MyAlloc<T>> type;
+  };
+  
+  MyAllocList<Widget>::type lw;
+  ```
+
++ `typedef` 使用模板时不仅定义变量时要多写一个 `::type`，在别的类中使用这个别名时还要加上 `typename`：
+
+  ```c++
+  template<typename T>
+  class A {
+  private:
+   	typename MyAllocList<T>::type list;
+  };
+  ```
+
+  因为对于编译器来说，它能够确保通过 alias declarations 声明的类型别名一定是类型，而不能肯定在模板中通过 `typedef` 声明的别名也一定是类型，因为有可能在某个地方模板的一个特化实例中该别名就不是类型：
+
+  ```c++
+  template<>
+  class MyAllocList<Wine> {
+  private:
+   	enum class WineType { White, Red, Rose };
+   	WineType type;
+  };
+  ```
+
+  所以需要程序员通过加上 `typename` 向编译器保证这一点。
+
+### Item 10  Prefer scoped enums to unscoped enums
+
++ C++11 引入 scoped enums，相较于 C++98 中的 unscoped enums，有以下优点：
+
+  + enum name 只有在 enum class 中可见，即使用 name 要加上 class 前缀，不会造成命名污染的问题；
+  + strongly typed，禁止隐式转型成其他类型，可以通过 `static_cast` 转型；
+  + underlying type 默认是 int，不用指定即可进行 forward declaration（unscoped enums 没有默认的 underlying type，编译器会根据不同情况选择最合适的，所以要进行 forward declaration 的话需要手动指定，此外，C++98 中不能手动指定 underlying type）。
+
++ 但是 unscoped enums 并非一点用也没有，例如在获取 tuple 中的某个字段时，可以利用 unscoped enums 允许隐式转型的机制少些很多代码：
+
+  ```c++
+  using UserInfo = std::tuple<std::string,   // name
+   			   				std::string,   // email
+   			   				std::size_t>;  // reputation 
+  
+  enum UserInfoFields { uiName, uiEmail, uiReputation };
+  UserInfo uInfo;
+  auto val = std::get<uiEmail>(uInfo); 
+  ```
+
+### Item 11  Prefer deleted functions to private undefined ones
+
++ 如果想要让某个函数禁止被调用，相较于 C++98 中将函数声明为 private 然后不实现的做法，C++11 提供了更好的机制：在函数签名后加上 `=delete;`，它有以下优点：
+
+  + 编译报错更明显。C++98 中的做法对于调用这类函数，报错是“不能调用 private 方法”，而本质原因是这类函数被设置为禁止调用，只是实现机制是通过 private 来隐藏它们。相比之下，C++11 的报错信息就是“不能调用 deleted 的函数”，更加本质。
+
+  + 在编译时刻报错。在 C++98 的做法中，尽管方法被声明成 private，但是仍然有可能被调用到（其他成员函数、友元等等），这种情况下到了链接时刻才会报错（因为只有声明没有实现）。而 C++11 中在编译时刻就能发现这一行为。
+
+  + 禁用重载版本。C++98 中禁用函数的实现机制就决定了只能禁用类的方法，而不能禁用非成员函数。C++11 中则可以，利用这一点可以过滤掉某些重载版本：
+
+    ```c++
+    bool isLucky(int number);
+    bool isLucky(double) = delete; 
+    ```
+
+  + 禁用模板特化版本。对于类中定义的模板，想要禁用某些特化版本，C++98 的做法是将被禁的特化版本声明成 private，但这是不行的，因为模板特化只能写在 namespace 的 scope 中，而不能写在 class 的 scope 中。C++11 则可以在类外禁用它：
+
+    ```c++
+    class Widget {
+    public:
+        template<typename T>
+     	void processPointer(T* ptr) {}
+    // private:           // C++98, error
+     	// template<>
+     	// void processPointer<void>(void*);
+    };
+    
+    template<>			  // C++11, ok
+    void Widget::processPointer<void>(void*) = delete; 
+    ```
+
++ 说白了就是 C++98 中的做法只是禁用函数效果的一个模拟，而 C++11 中是真的禁用掉了。
+
+### Item 12  Declare overriding functions override
+
++ 子类的方法想要 override 父类的方法需要满足很多条件，例如函数名相同，父类方法为虚函数，除此以外对参数类型、返回值类型、异常声明类型、方法的常量性、引用限定符（reference qualifiers）等等都有要求。
+
+  所以一不小心就会导致没有真的 override，而为了保证这一点，可以在子类方法后加上 `override` 来确保有一个对应的父类方法真的被 override 了。
+
++ 所谓方法的 reference qualifiers，是用于使不同左右值属性的 `*this` 能调到不同的重载版本：
+
+  ```c++
+  class Widget {
+  public:
+   	using DataType = std::vector<double>;
+   	DataType& data() & 
+   	{ return values; } 
+   	DataType data() && 
+   	{ return std::move(values); } 
+  private:
+   	DataType values;
+  };
+  
+  auto vals1 = w.data();			   // lvalue
+  auto vals2 = makeWidget().data();  // rvalue
+  ```
+
+  同理，如果某个方法后加上了 `const` 限定符，则该方法只能被 const `*this` 调用。
+
+### Item 13  Prefer const_iterators to iterators
+
++ 尽量使用 const 的概念在 C++11 之前就出现了，但是 C++98 对于 `const_iterator` 的支持不是很实用。在 C++11 中，能用 `const_iterator` 的地方还是要尽量去用。
++ 泛型编程中，应当尽可能地使用非成员版本的 `begin`, `end`, `cbegin` 等等函数，而在 C++11 中只有非成员版本的 `begin` 和 `end`，没有 `cbegin`，`rbegin` 等等（虽然可以自己实现），后者在 C++14 中引入。
+
+### Item 14  Declare functions noexcept if they won't emit exceptions
+
++ 对于某个函数可能抛出且未捕获的异常，C++98 的建议是在函数签名后写 `throw()`，里面填上这些异常类型（如果没有未捕获的异常就空着）；而 C++11 觉得真正重要的是一个函数是否抛异常，而不是抛哪些异常，所以建议的做法是如果不抛异常，就在函数签名后加上 `noexcept`。
+
++ 声明一个函数为 noexcept 具有优化的作用。例如如果 move 操作是 noexcept 的，`push_back` 导致 `vector` 扩容时就可以选择 move 而非 copy 来保证异常安全。
+
++ noexcept 带来的优化很重要，但是正确性更加重要：一旦声明了一个函数为 noexcept，就不要轻易地反悔，因为这有可能影响客户端的代码。
+
+  此外，强行将函数实现成 noexcept 也是没有必要的，因为 noexcept 带来的性能优化可能远远比不上强行实现带来的性能开销大。
+
++ 对于析构函数来说，它们都是隐式声明成 noexcept 的，除非类中某个成员的析构函数显式地声明会抛出异常（`noexcept(false)`）
+
++ 某些库函数的设计者将函数分为 wide contracts 和 narrow contracts，区别在于是否有使用条件上的限制。对于不会抛出异常的 wide contracts 函数来说，可以放心地将其声明为 noexcept。而对于不会抛出异常的 narrow contracts 函数，尽管是否违反使用限制应该由调用者来检查，但是有时由该函数来检查也是可以的，也就是说该函数还是有可能会因为不满足使用限制而抛出异常，所以不能声明为 noexcept。
+
+### Item 15  Use constexpr whenever possible
+
++ `constexpr` 可以用于限定一个对象或函数。
+
+  当 `constexpr` 作用于一个对象时，它表明该对象是一个编译时常量，即该对象的值在编译时刻就已确定（所有 constexpr 对象都是 const，但不是所有 const 对象都是 constexpr）
+
+  当 `constexpr` 作用于一个函数时，如果该函数的所有入参都是编译时常量，那么该函数会在编译时刻执行并返回一个编译时常量作为返回值；如果并非所有入参都是编译时常量，那么该函数就是一个普通的函数，在运行时刻被调用。
+
++ C++11 中的 constexpr 函数只能有一条 `return` 语句（不过仍然可以使用三目运算符实现条件语句，使用递归实现循环语句），C++14 则将该限制放宽了许多，只是不能调用 non-constexpr 的函数。
+
++ 编译时常量（字面量）不仅可以是内置类型（`void` 除外），也可以是用户定义的类，因为构造函数也可以声明成 `constexpr`。
+
++ 尽可能地使用 `constexpr`，因为 `constexpr` 对象和函数有更大的使用范围，将运算转移到编译时刻也能提高运行时刻的效率。
+
+  事实上 C++ 有很多地方只能使用编译时常量，例如数组大小、non-type 模板参数、enumerator 的值以及 alignment specifiers 等等。
+
++ 和 noexcept 类似，一旦将函数声明成 `constexpt` 就不要轻易反悔，因为这有可能会影响客户端的代码。
+
+### Item 16  Make const member functions thread safe
+
++ const 成员函数不会修改成员变量，所以是线程安全的。但是 C++11 引入的 `mutable` 改变了这一点：被 `mutable` 修饰的成员变量即使在 const 成员函数中也可以被修改。这提供了更多的灵活性，但是同时也增加了程序员的负担：现在需要程序员来保证 cosnt 成员函数的线程安全了。
+
++ 保证线程安全有两种方法：互斥锁和原子操作。它们的区别在于锁的粒度（临界区大小）不同，如果临界区只是一条语句、一个变量、一次访存操作这种很小的粒度，就可以使用原子操作：
+
+  ```c++
+  mutable std::atomic<unsigned> callCount{ 0 };
+  
+  ++callCount;  // atomic increment
+  ```
+
+  如果临界区比较大，就需要用互斥锁来保护：
+
+  ```c++
+  mutable std::mutex m;
+  
+  {
+   	std::lock_guard<std::mutex> g(m); // lock mutex
+   	/* critical section */
+  } 	// unlock mutex
+  ```
+
+  需要注意的是原子变量和互斥锁都声明成了 `mutable`，因为在 const 成员变量中需要修改它们。
+
+  此外，`std::atomic` 和 `std::mutex` 都是 move-only 的类，这就导致包含它们的类不能被默认拷贝。
+
+### Item 17  Understand special member function generation
+
++ 所谓 special member function，是指默认构造、拷贝构造、拷贝赋值、析构、移动构造、移动赋值这六个函数，它们在没有声明的情况下被使用时，编译器**通常**会生成一个默认的版本。
+
+  这里说**通常**，是因为有些特殊的规则限制编译器在某些情况下不会生成默认版本：
+
+  + 当声明了任意形式的构造函数（包括拷贝构造和移动构造）时，不会自动生成默认构造。
+
+  + 当声明了移动操作（包括移动构造和移动赋值）时，不会自动生成拷贝操作和另一个移动操作。
+
+    这是因为声明移动操作意味着编译器生成的移动操作不能满足需求，那么很有可能生成的拷贝操作也不能满足需求。
+
+  + 当声明了拷贝操作时，不会自动生成移动操作。
+
+    原因同上，至于为什么声明拷贝操作不会阻止另一个拷贝操作的生成，应该是考虑和 C++98 的兼容性。
+
+  + 当声明了析构函数时，不会自动生成移动操作。
+
+    根据 Rule of Three（拷贝操作、析构函数这三个函数中只要声明了一个，其他两个也应该声明），声明了析构函数时就不应该自动生成拷贝操作了，但是制定 C++98 标准的时候 Rule of Three 的重要性尚未被人们意识到，后来又为了兼容性，就导致即使声明了析构函数，拷贝操作仍然可以自动生成。但是对于 C++11 新引入的移动操作，在声明了析构函数的情况下就不会自动生成了。
+
++ 编译器自动生成的默认版本是 public，inline 且 non-virtual 的（除了父类有虚析构情况下子类析构是虚函数以外其他都是非虚的）
+
+  自动生成的拷贝操作使用 memberwise copy，即对于所有 non-static 成员变量，调用它们的拷贝操作，如果某个成员的拷贝操作没有声明并且也无法生成，则拷贝失败。
+
+  自动生成的移动操作使用 memberwise move，即对于所有 non-static 成员变量，调用它们的移动操作，如果某个成员的移动操作没有声明并且也无法生成，则转而调用拷贝操作，如果拷贝操作也没有，那移动失败。
+
++ 对于 special member function，可以指定 `=default;` 来声明一个和编译器自动生成的默认版本一样的函数。
+
++ 此外，成员函数模板不会影响编译器对 special member function 的自动生成。
+
+##### Last-modified date: 2020.5.21, 9 p.m.
