@@ -501,4 +501,185 @@ auto type deduction 和 template type deduction 类似，只有一点不同。
 
 + 此外，成员函数模板不会影响编译器对 special member function 的自动生成。
 
-##### Last-modified date: 2020.5.21, 9 p.m.
+## Chapter 4  Smart Pointers
+
+使用裸指针有以下几个问题：
+
++ 从裸指针的声明中不能看出其指向的是一个对象还是一个数组。
++ 从裸指针的声明中不能看出是否需要释放它，以及怎样释放。
++ 很难保证裸指针释放且仅被释放一次。
++ 没有办法得知裸指针是否悬空了。
+
+智能指针解决了这些问题。
+
+### Item 18  Use std::unique_ptr for exclusive-ownership resource management
+
++ `std::unique_ptr` 禁用拷贝，默认情况下大小和执行效率和裸指针一样。可以自定义 deleter，但是使用函数指针或者有状态的 function object 作为 deleter 时 `unique_ptr` 的大小就不再是一个指针长了；而使用 lambda 表达式或者无状态的 function object 则不会带来空间上的开销。
+
++ `unique_ptr` 的一个使用场景是作为工厂函数的返回值类型，它可以很方便地转换成 `shared_ptr`：
+
+  ```c++
+  std::unique_ptr<Investment> makeInvestment();
+  
+  auto pInvestment = makeInvestment();
+  std::shared_ptr<Investment> sp = makeInvestment();
+  ```
+
+### Item 19  Use std::shared_ptr for shared-ownership resource management
+
++ `std::shared_ptr` 大小为双指针长，一个指向被管理的对象，另一个指向 control block。control block 中存储着 reference count, weak count, custom deleter, allocator 等等。
+
+  而且对 reference count 的操作需要是原子的，所以 `shared_ptr` 在空间和时间上的开销都会比 `unique_ptr` 大一些。
+
++ 由于 custom deleter 存储在 control block 中，所以使用函数指针或者有状态的 function object 也不会再增加 `shared_ptr` 的大小。此外，相同类型的 `shared_ptr` 可以有不同类型的 custom deleter，这点和 `unique_ptr` 不同，后者将 custom deleter 的类型作为其模板参数之一。
+
++ 需要注意的是，以下情况会创建 control block：
+
+  + 调用 `std::make_shared`；
+  + 从 `unique_ptr` 或 `auto_ptr` 创建一个 `shared_ptr`；
+  + 以裸指针为参数构造 `shared_ptr`。
+
+  所以用某一个裸指针多次构造 `shared_ptr` 将会导致一个对象和多个 control block 关联，而当 control block 中的 reference count 降为 0 时会释放关联的对象，也就是说该对象会被释放多次从而导致未定义的行为（正确的做法应该是用一个 `shared_ptr` 去拷贝构造另一个）。
+
+  看上去很好避免，但其实有一个场景就很容易导致这个问题：使用 `this` 指针构造 `shared_ptr`，因为无法保证在类外指向该对象的指针是不是已经用于构造了一个 `shared_ptr`。解决此问题可以让类继承自一个工具类：
+
+  ```c++
+  class Widget: public std::enable_shared_from_this<Widget>
+  ```
+
+  然后在需要用 `this` 指针构造 `shared_ptr` 的时候，可以使用 `shared_from_this` 方法：
+
+  ```c++
+  std::vector<std::shared_ptr<Widget>> processedWidgets;
+  
+  processedWidgets.emplace_back(shared_from_this());
+  ```
+
+  需要注意的是由于 `shared_from_this` 的实现机制，需要事先有一个 `shared_ptr` 和 `this` 关联，这可以通过将类的构造声明为私有，对外暴露一个返回 `shared_ptr` 的工厂方法来实现。
+
+### Item 20  Use std::weak_ptr for std::shared_ptr-like pointers that can dangle
+
++ `std::weak_ptr` 可以由 `shared_ptr` 构造而来，它不能解引用，想要通过 `weak_ptr` 访问被指向的对象需要先转换成 `shared_ptr`，有两种转换方法：`weak_ptr::lock()` 以及用 `weak_ptr` 构造一个 `shared_ptr`，区别在于当 `weak_ptr` expired 时，前者会返回 `nullptr`，而后者抛出异常。
++ `weak_ptr` 的空间和时间开销本质上和 `shared_ptr` 一样，都是双指针大小，都需要原子操作。
++ `weak_ptr` 的设计理念决定了其应用场景：弱引用。所谓弱引用，即不增加 reference count，可以得知对象是否 expired 而不管理其生命周期（就像一个旁观者，能看到对象是否还在，但是自己不参与进去）。具体的应用例如 cache，观察者模式，解决循环引用等等。
+
+### Item 21  Prefer std::make_unique and std::make_shared to direct use of new
+
++ 所谓 make 函数是指接收一组参数，将它们完美转发到某个类的构造，动态创建一个对象然后返回指向该对象的智能指针。一共有三个 make 函数：`make_unique`，`make_shared` 以及 `allocate_shared`。后两个类似，但是 `allocate_shared` 可以指定使用的 allocator。
+
++ 和直接使用 new 相比，使用 make 函数有以下优点：
+
+  + 减少重复。利用 `auto` 可以少写一次类名：
+
+    ```c++
+    auto upw1(std::make_unique<Widget>());
+    std::unique_ptr<Widget> upw2(new Widget);
+    ```
+
+  + 异常安全。因为编译器不保证参数计算的顺序，所以 `g` 有可能在 new 之后，`shared_ptr` 构造之前抛出异常造成内存泄露：
+
+    ```c++
+    f(std::shared_ptr<Widget>(new Widget), g());
+    ```
+
+  + 更紧凑的内存布局和更高的执行效率。使用 make 函数可以将对象和 control block 分配在一块内存中，这样只用申请一次。
+
++ 但是也有些情况下 make 函数并不如 new 好用（甚至是只能用 new）：
+
+  + 需要使用自定义的 deleter 时：
+
+    ```c++
+    auto widgetDeleter = [](Widget* pw) { … };
+    
+    std::unique_ptr<Widget, decltype(widgetDeleter)> upw(new Widget, widgetDeleter);
+    std::shared_ptr<Widget> spw(new Widget, widgetDeleter);
+    ```
+
+  + 需要使用 braced initializer 时。之前提到 make 函数将参数完美转发到类的构造，而 braced initializer 不允许完美转发。但也不是完全没有办法，可以先用 braced initializer 初始化一个 `initializer_list`，将可以完美转发了：
+
+    ```c++
+    auto initList = { 10, 20 };
+    // auto spv = std::make_shared<std::vector<int>>({ 10, 20 });  // error
+    auto spv = std::make_shared<std::vector<int>>(initList);	 // ok
+    ```
+
+  + 有些类定义了自己的 `operator new` 和 `operator delete`，一次只申请 / 释放正好一个对象大小的空间，而 make 函数需要将对象和 control block 申请在一起。
+
+  + 将对象和 control block 申请在一起意味着它们也只能同时被释放。但是本来只要所有指向该对象的 `shared_ptr` 都析构了（reference count 降为 0），对象的内存就可以释放了，而现在不行，因为还要等 `weak_ptr` 都析构了（weak count 降为 0），control block 和对象的内存才能同时释放。而在这两个时刻之间，对象的内存是白白占用着的。
+
+### Item 22  When using the Pimpl Idiom, define special member functions in the implementation file
+
++ Pimpl Idiom 是说将类实现相关的细节移到类的源文件（implementation file）中，在头文件中只保留一个指向包含了原先私有成员的结构体的指针，这样客户端的代码就可以少依赖很多类实现相关的代码，加快构建速度：
+
+  ```c++
+  // widget.h
+  class Widget {
+  public:
+   	Widget();
+  private:
+   	struct Impl;
+   	std::unique_ptr<Impl> pImpl;
+  };
+  
+  // widget.cpp
+  #include "widget.h"
+  #include "gadget.h"
+  #include <string>
+  #include <vector>
+  struct Widget::Impl {
+   	std::string name;
+   	std::vector<double> data;
+   	Gadget g1, g2, g3;
+  };
+  Widget::Widget() : pImpl(std::make_unique<Impl>()) {}
+  ```
+
++ 但是仅有这些还不能 work，仔细分析代码：我们没有声明析构，那么编译器会自动生成一个。自动生成的析构会调 `pImpl` 的析构，也就是 `unique_ptr` 的 default deleter，而这个 deleter 在 `delete` 裸指针之前会先 `static_assert` 一下这个裸指针指向的对象不是一个 incomplete type（也就是声明但未实现的类型）。而在编译客户端代码（例如 `main.cpp`）时，实现类的代码（`widget.cpp`）是不可见的，也就是说 `struct Impl` 是 incomplete type，`static_assert` 失败了。
+
+  要解决这个问题也很好办，我们仍然可以使用编译器自动生成的析构，但是在此之前要让编译器看到 `struct Impl` 的定义：
+
+  ```c++
+  // widget.h
+  ~Widget();
+  
+  // widget.cpp
+  Widget::~Widget() = default;
+  ```
+
+  也就是说让编译器在源文件中看到 `struct Impl` 的定义后再自动生成析构，而头文件中加上一个析构声明即可。
+
++ 因为声明了析构，编译器不会自动生成移动操作了，需要我们自己声明，事实上默认移动已经符合我们的要求了（调用 `pImpl` 的移动操作），所以只需要加上 `=default;` 即可。但是不能加在头文件中，原因和之前类似，默认移动的实现都需要调用析构，就会导致 incomplete type 的问题。具体为什么要调用析构，移动构造和移动赋值有些不同：移动构造中，如果抛出了异常编译器需要析构掉 `pImpl`；移动赋值中编译器需要在赋值前把旧的 `pImpl` 析构掉。
+
+  解决的方法也类似：将移动操作的定义（也就是 `=default;`）放到源文件中，让编译器生成默认代码时看到 `struct Impl` 的定义：
+
+  ```c++
+  // widget.h
+  Widget(Widget&& rhs);
+  Widget& operator=(Widget&& rhs);
+  
+  // widget.cpp
+  Widget::Widget(Widget&& rhs) = default;
+  Widget& Widget::operator=(Widget&& rhs) = default;
+  ```
+
++ 此外，我们还需要声明拷贝操作，但是编译器的默认拷贝并不能满足我们的要求（`unique_ptr` 没有拷贝操作），所以这回要自己实现。同样，为了避免 incomplete type 的问题（`make_unique` 需要知道 `struct Impl` 的大小，赋值需要知道 `struct Impl` 的拷贝操作），需要在头文件中声明，在源文件中写上定义：
+
+  ```c++
+  // widget.h
+  Widget(const Widget& rhs);
+  Widget& operator=(const Widget& rhs); 
+  
+  // widget.cpp
+  Widget::Widget(const Widget& rhs) : pImpl(std::make_unique<Impl>(*rhs.pImpl)) {}
+  
+  Widget& Widget::operator=(const Widget& rhs) {
+   	*pImpl = *rhs.pImpl;
+   	return *this;
+  }
+  ```
+
++ 最后理一下关键的逻辑：之所以要将 special member function 定义在源文件中，是因为在编译它们时，`struct Impl` 不能是 incomplete type。而之所以 `struct Impl` 不能是 incomplete type，是因为 `unique_ptr` 的构造和析构需要用到 `struct Impl` 的信息（例如 sizeof，结构体成员的析构等等）。
+
+  `shared_ptr` 的析构似乎倒不要求 `struct Impl` 不能是 incomplete type，因为 `shared_ptr` 的 deleter 类型并不是自己模板的类型参数之一，而 `unique_ptr` 的 deleter 类型是，这么设计是为了使 `unique_ptr` 有更小的运行时数据结构以及更快的执行效率。
+
+##### Last-modified date: 2020.5.22, 8 p.m.
