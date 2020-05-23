@@ -2,9 +2,9 @@
 
 ## Introduction
 
-+ **argument** 是形参，可以是左值也可以是右值； 
++ **argument** 是实参，可以是左值也可以是右值； 
 
-  **parameter** 是实参，一定是左值。
+  **parameter** 是形参，一定是左值。
 
 + basic exception safety guarantee 是指发生异常后程序的不变量仍然得到保证以及没有资源被泄露；
 
@@ -682,4 +682,200 @@ auto type deduction 和 template type deduction 类似，只有一点不同。
 
   `shared_ptr` 的析构似乎倒不要求 `struct Impl` 不能是 incomplete type，因为 `shared_ptr` 的 deleter 类型并不是自己模板的类型参数之一，而 `unique_ptr` 的 deleter 类型是，这么设计是为了使 `unique_ptr` 有更小的运行时数据结构以及更快的执行效率。
 
-##### Last-modified date: 2020.5.22, 8 p.m.
+## Chapter 5  Rvalue References, Move Semantics and Perfect Forwarding
+
+### Item 23  Understand std::move and std::forward
+
++ `std::move` 和 `std::forward` 在运行时刻不做任何事（它们不会生成哪怕一个字节的可执行代码），只是在编译时刻转换参数的左右值属性：
+
+  ```c++
+  template<typename T>
+  decltype(auto) move(T&& param)
+  {
+   	using ReturnType = remove_reference_t<T>&&;
+   	return static_cast<ReturnType>(param);
+  }
+  ```
+
+  注意：作为返回值的右值引用是右值！
+
++ `move` 无条件地将参数转换成右值，而 `forward` 可以根据模板参数来决定是否将参数转换成右值。尽管用 `forward` 也可以实现 `move` 的功能，但是需要多指定一个模板参数，并且语义上也不太合适：
+
+  ```c++
+  A a;
+  std::move(a);
+  std::forward<A>(a);
+  ```
+
+### Item 24  Distinguish universal reference from rvalue reference
+
++ universal reference 需要满足两个条件：有形如 `T&&` 的类型以及发生了类型推断。
+
+  + 仅发生类型推断但没有 `T&&` 类型的情况：
+
+    ```c++
+    template<typename T>
+    void f(std::vector<T>&& param);		// rvalue reference
+    ```
+
+    注意必须是严格的 `T&&`（当然不一定非得是 `T`），多一个 `const` 也不行：
+
+    ```c++
+    template<typename T>
+    void f(const T&& param);	// rvalue reference
+    ```
+
+  + 仅有 `T&&` 类型但没有发生类型推断的情况：
+
+    ```c++
+    template<class T, class Allocator = allocator<T>
+    class vector {
+    public:
+     	void push_back(T&& x);		// rvalue reference
+    };
+    ```
+
+    该情况中，实际调到 `push_back` 前类模板已经被实例化了，所以 `T` 已经是一个具体的类型了，不会发生类型推断。
+
+  `T&&` 也可以是 `auto&&`：
+
+  ```c++
+  auto&& var2 = var1;  // universal reference
+  ```
+
+  这在 C++14 的 lambda 表达式中尤其有用：
+
+  ```c++
+  auto timeFuncInvocation = [](auto&& func, auto&&... params) {  // universal reference
+   	// start timer
+   	std::forward<decltype(func)>(func)(std::forward<decltype(params)>(params)...);
+   	// stop timer and record elapsed time
+   };
+  ```
+
++ universal reference 表现成 lvalue reference 还是 rvalue reference 由初始化表达式是左值还是右值来决定：
+
+  ```c++
+  template<typename T>
+  void f(T&& param); // param is a universal reference
+  
+  Widget w;
+  f(w); 			  // lvalue passed to f; param's type is Widget&  (lvalue reference)
+  f(std::move(w));  // rvalue passed to f; param's type is Widget&& (rvalue reference)
+  ```
+
+### Item 25  Use std::move on rvalue references, std::forward on universal references
+
++ 对于函数入参，将 `move` 作用于 rvalue reference，将 `forward` 作用于 universal reference，需要注意的是如果多次使用该入参，则只能将 `move` 或 `forward` 作用在最后一次上：
+
+  ```c++
+  template<typename T>
+  void setSignText(T&& text) {
+   	sign.setText(text);
+   	auto now = std::chrono::system_clock::now();
+  	signHistory.add(now, std::forward<T>(text));
+  }
+  ```
+
+  当然，这里说的 “最后一次” 也可以是返回值（如果函数的返回值是 return by value 的话）：
+
+  ```c++
+  Matrix operator+(Matrix&& lhs, const Matrix& rhs) {
+   	lhs += rhs;
+   	return std::move(lhs);
+  }
+  ```
+
+  这样做的好处在于省去一次 copy 的开销。
+
++ 但是将 `move` 作用于返回值这一操作对于 local 对象来说，情况有所不同。首先需要明白为什么要将 `move` 作用于返回值？因为想省下一次 copy 操作的开销。那么返回一个 local 对象真的会 copy 吗？其实大部分情况下是不会的，因为编译器做了 RVO（返回值优化），即直接在存放函数返回值的内存位置处构造这个 local 对象：
+
+  ```c++
+  Widget makeWidget() {
+   	Widget w;  // 构造在存放函数返回值的内存位置，而非存放普通 local 对象的位置
+   	return w;
+  }
+  ```
+
+  所以即使不加 `move`，编译器也不会 copy。相反，如果加了 `move`，编译器将不会进行 RVO，因为 RVO 需要满足两个条件：local 对象类型要和返回值类型一样且 local 对象就是被返回的对象。而被返回的对象（`std::move(w)`）是 `w` 的引用，并非 `w` 本身，所以不满足 RVO 的条件。
+
+  那有的人也许会说，我加了 `move` 虽然放弃了 RVO 的机会（这里说是 “机会” 是因为不是说不加 `move` 就一定会 RVO，仍然有很多其他情况阻止编译器做 RVO，比如有多处返回值返回不同的 local 变量），但至少保证了不会 copy。这个观点也是不对的，因为如果满足 RVO 的条件而编译器由于种种原因没有做 RVO 的话，它也会将返回值作为右值来处理，即看上去像是编译器帮你加了 `move` 一样。
+
+  总结一下就是，当函数满足 RVO 的条件时，不要将 `move` 作用于返回值。因为如果确实做了 RVO，那就白白多了一次 move 操作；而就算没有做 RVO，编译器也会将其当做右值处理，手动加上 `move` 并没有任何优化。
+
++ 同样地，对于返回值是值传递进来的参数的情况，编译器也会将其当做右值处理（这种情况做不了 RVO），不用程序员加上 `move`：
+
+  ```c++
+  Widget makeWidget(Widget w) {
+   	return w;
+  }
+  ```
+
+### Item 26  Avoid overloading on universal references
+
++ 尽量避免对 universal reference 进行重载：
+
+  ```c++
+  template<typename T>
+  void logAndAdd(T&& name);
+  
+  void logAndAdd(int idx);
+  ```
+
+  在这个例子中，只要参数类型不是 int，对 `logAndAdd` 的调用都会被有 universal reference 的版本捕获，因为它可以实例化出一个完美匹配的模板函数。在 C++ 重载函数的版本选择中，类型能完美匹配的优于需要转型的，如果类型都能完美匹配，那么非模板函数优于实例化出来的模板函数。
+
++ 除此以外，当类的构造中含有 universal reference 时，情况会变得更糟。它会捕获所有非常量拷贝构造（编译器自动生成的拷贝构造参数具有 `const`，不能算完美匹配了），还会捕获所有来自子类的拷贝构造（子类的类型被父类的拷贝构造接受需要转型）
+
+### Item 27  Familiarize yourself with alternatives to overloading on universal references
+
+如果不得不利用重载 universal reference 提供的功能，有几种方式可以避免它带来的问题：
+
++ 不重载，用不同名的函数。
++ 不使用 universal reference，可以使用常量左值引用或值传递。
+
+（以上两种方法都不是很好）
+
++ Tag Dispatch。重载 universal reference 带来的问题就是选择重载版本时，它往往会捕获到比我们想象的多得多的调用，那只要解决这个问题就可以了。注意到选择重载版本是以参数类型为依据的，universal reference 只是其中一个参数，我们可以使用另一个参数（tag）来决定调用（dispatch）哪个版本：
+
+  ```c++
+  template<typename T>
+  void logAndAdd(T&& name) {
+   	logAndAddImpl(
+      	std::forward<T>(name),
+   		std::is_integral<typename std::remove_reference<T>::type>()
+          // 使用 remove_reference 是因为 int& 不是 integral type
+      );
+  }
+  
+  template<typename T>
+  void logAndAddImpl(T&& name, std::false_type)；
+  
+  void logAndAddImpl(int idx, std::true_type)；
+  ```
+
+  `std::true_type` 和 `std::false_type` 是编译时的 bool 类型。选择重载版本时它们能 “屏蔽” universal reference 的完美匹配（就好比是在 “完美匹配 + 完美不匹配” 和 “需要转型 + 完美匹配” 中选一个）。
+
++ 还有一种方法，用到模板可以在某些条件下被禁用的机制，`condition` 不满足时，该模板就好像不存在一样：
+
+  ```c++
+  template<typename T, typename = typename std::enable_if<condition>::type>
+  ```
+
+  为了不让 universal reference 捕获到和自定义类型仅 cvr 属性不同的参数、是自定义类型派生类的参数或者 integral type，可以这样指定自定义类型的含有 universal reference 的构造函数：
+
+  ```c++
+  template<
+  	typename T,
+   	typename = std::enable_if_t<
+   		!std::is_base_of<Person, std::decay_t<T>>::value &&
+   		!std::is_integral<std::remove_reference_t<T>>::value
+   	>
+  >
+  explicit Person(T&& n) : name(std::forward<T>(n)) {}
+  ```
+
+  这种方法解决了 Tag Dispatch 的一个问题：即使是含有 universal reference 的构造函数也不能捕获所有调用（还存在其他重载版本，比如默认拷贝构造），所以就没办法作为一个 dispatcher。
+
++ universal reference 的确效率很高，但是往往存在易用性上的问题，比如报错信息太隐晦。
+
+##### Last-modified date: 2020.5.23, 8 p.m.
