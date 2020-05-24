@@ -878,4 +878,179 @@ auto type deduction 和 template type deduction 类似，只有一点不同。
 
 + universal reference 的确效率很高，但是往往存在易用性上的问题，比如报错信息太隐晦。
 
-##### Last-modified date: 2020.5.23, 8 p.m.
+### Item 28  Understand reference collapsing
+
+reference collapsing 是说当编译器生成了一个引用的引用时（程序员是不能定义引用的引用的），会按照以下规则将其折叠成单引用：
+
+```c++
+T& &   -> T&
+T& &&  -> T&
+T&& &  -> T&
+T&& && -> T&&
+```
+
+有四种情况会发生 reference collapsing：
+
++ 模板实例化（universal reference），这也是用的最多的一个情形：
+
+  ```c++
+  template<typename T>
+  void func(T&& param);
+  ```
+
+  当实参为左值时，`T` 推断为左值引用 `&`，发生 reference collapsing（当实参为右值时，`T` 被推断为普通类型，没有 reference collapsing）
+
++ auto 类型推断（universal reference），如 Item 24 中所述，这也是 universal reference：
+
+  ```c++
+  auto&& w1 = w;
+  ```
+
++ typedef 和类型别名，上面两种情况是根据参数的左右值属性来推断不同的 `T` 或 `auto`，推断的结果有两种：普通类型和左值引用，只有推断为左值引用时才会发生 reference collapsing，但是这种情况（以及下面那种情况）不同，它们没有发生类型推断：
+
+  ```c++
+  template<typename T>
+  class Widget {
+  public:
+   	typedef T&& RvalueRefToT;
+  };
+  
+  Widget<int&> w1;	// int&
+  Widget<int&&> w2;	// int&&
+  ```
+
++ decltype，和第三种情况类似：
+
+  ```c++
+  decltype(a) &&b;
+  ```
+
+### Item 29  Assume that move operations are not present, not cheap and not used
+
+move 操作并非总是优于 copy 操作，例如：
+
++ 有些类不支持 move 操作；
++ 对于小对象，copy 操作有时也会比 move 操作快（比如 `std::string` 的 SSO，Small String Optimization）；
++ move 操作会抛出异常，而接口要求 noexcept 时。
+
+### Item 30  Familiarize yourself with perfect forwarding failure cases
+
+perfect forwarding 是说有一个转发函数和目标函数，转发函数需要将其接受的参数原封不动地（保留类型，cvr 属性）传递给目标函数。而如果将这些参数传递给转发函数让其转发和直接传递给目标函数得到的行为不一样的话，perferct forwarding 就被认为失败了。
+
+导致 perfect forwarding 失败可能有以下几种情况：
+
++ 参数为 braced initializers，即花括号括起来的一组值。将 braced initializers 直接传递给目标函数没有问题，但是转发函数的参数是 universal reference，无法从 braced initializers 推断出类型。但是有一个 trick 可以解决这个问题：先用 braced initializers 初始化一个 `auto` 的 initializer_list 然后将其传进来。
+
++ 参数为希望被当成空指针的 0 或 NULL。当转发函数接受到 0 或 NULL 时，会优先转发给目标函数接受 integral type 的重载版本，而非接受指针的重载版本。
+
++ 参数为未定义的 static const 成员变量。需要先明确一下，“定义” 成员变量是写在类外的，“声明” 成员变量才是类内的：
+
+  ```c++
+  class Widget {
+  public:
+   	static const std::size_t MinVals = 28;  // declaration
+  };
+  
+  const std::size_t Widget::MinVals;  // definition
+  ```
+
+  如果不对未定义的 static const 成员变量取地址，那不定义没有什么问题，但是作为转发函数的参数，需要引用这个成员变量，而对编译器生成的代码来说，引用和指针通常没什么区别。即不定义就不占内存，就没有地址，就没办法引用。
+
++ 参数为有重载版本的函数名或者函数模板。将函数名或函数模板直接传递给目标函数时，可以通过目标函数的参数类型决定用哪个重载版本或模板实例，但是转发函数的参数类型是 universal reference，没有办法选择重载版本或模板实例。解决的方法是先将函数名赋值给一个新定义的确定类型的变量，然后将新定义的变量传递进来或者直接将函数名转型成指定的类型。
+
++ 参数是位域。C++ 不允许非常量引用绑定到位域，因为没法直接修改 bit。解决的方法和之前类似，先用位域初始化一个 `auto ` 变量，然后将这个新定义的变量传递进来。
+
+## Chapter 6  Lambda Expressions
+
+首先要搞清楚几个概念：
+
++ **lambda 表达式**：就是一个表达式，是代码本身：
+
+  ```c++
+  [](int val) { return 0 < val && val < 10; }
+  ```
+
++ **closure**：由 lambda 表达式创建出来的运行时对象，closure 包含 capture list 中的数据。
+
++ **closure class**：closure 对象所属的类。每有一个 lambda 表达式，编译器就会生成一个 closure class。lambda 表达式中的语句就出现在 closure class 的成员函数中。
+
+注意，lambda 表达式和 closure class 存在于编译时刻，closure 存在于运行时刻。
+
+### Item 31  Avoid default capture modes
+
++ 使用默认的 by-reference capture 容易导致悬空引用的问题，除非能保证被捕获的变量生命周期不短于 lambda。指定 capture 变量至少能让问题变得更容易解决一些。
+
++ 使用 by-value capture 也会有悬空指针的问题（使用默认的 capture mode 将使这个问题更加隐蔽），尤其是 capture this 指针的时候，一个解决方法是将变量拷贝一份，然后 capture by value：
+
+  ```c++
+  void Widget::addFilter() const {
+   	auto divisorCopy = divisor;  // divisor is a data member
+   	filters.emplace_back(
+   		[divisorCopy](int value)  // capture the copy
+   		{ return value % divisorCopy == 0; }  // use the copy
+   	);
+  }
+  ```
+
+  C++14 中还可以使用 init capture 使代码更简洁：
+
+  ```c++
+  void Widget::addFilter() const {
+   	filters.emplace_back(
+   		[divisor = divisor](int value) 	 // copy divisor to closure
+   		{ return value % divisor == 0; } // use the copy
+   	);
+  }
+  ```
+
+### Item 32  Use init capture to move objects into closures
+
++ C++14 引入的 init capture 使 lambda 表达式更加强大灵活。使用 init capture，在 `=` 左边指定 closure class 中成员变量的变量名，在 `=` 右边指定由于初始化该成员变量的表达式。
+
++ init capture 可以用来移动构造 capture 变量，在 C++11 中也有方法来模拟这一点：用对象来移动构造一个 bind object（`std::bind` 生成的对象），然后将该对象引用传参给 lambda：
+
+  ```c++
+  auto func = std::bind(
+      [](const std::vector<double>& data) {},
+      std::move(data)
+  );
+  ```
+
+  `std::bind` 的第二个参数是右值，所以被用来移动构造 bind object（`func`），当 `func` 被调用时，其中的成员变量被传递给 `std::bind` 的第一个参数，由于是引用传递，所以总的开销也就只有一次 move，和使用 init capture 一样。
+
+### Item 33  Use decltype on auto&& parameters to std::forward them
+
++ C++14 还引入了 generic lambda，即 labmda 参数类型可以是 `auto`，这个机制可以用来实现 lambda 的完美转发：
+
+  ```c++
+  auto fwd = [](auto&& param) {
+   	f(std::forward<decltype(param)>(param));
+  };
+  ```
+
++ 和函数模板实现的完美转发相比，区别主要在于 `forward` 的类型参数：
+
+  ```c++
+  template<typename T>
+  void fwd(T&& param) {
+   	f(std::forward<T>(param));
+  }
+  ```
+
+  以 `int` 为例，当入参为左值时，前者 `param` 是 `int&`，后者 `T` 也是 `int&`，`forward` 表现相同。但是当入参为右值时，情况有所不同：前者 `param` 是 `int&&`，后者 `T` 是 `int`，但是仔细看一下 `forward` 的实现就会发现，由于 reference collapsing，两者最终的表现仍然是相同的：
+
+  ```c++
+  template<typename T> 
+  T&& forward(remove_reference_t<T>& param) {
+   	return static_cast<T&&>(param);
+  }
+  ```
+
+### Item 34  Prefer lambdas to std::bind
+
++ 和 `std::bind` 相比，lambda 表达式在诸多方面要更加好用，例如延迟求值，很好处理重载函数，内联，可读性更高等等。
++ C++14 中没有理由再使用 `std::bind` 而不用 lambda 表达式了，因为它解决了 C++11 中 lambda 表达式两个小问题：
+  + move capture，C++14 引入 init capture 可以移动构造 capture 变量。
+  + polymorphic function objects，本质是 `bind` 的第一个参数是 callable，这个 callable 可以是个函数模板，而 C++14 引入 lambda 表达式的 `auto` 参数，从而也支持了这一点。
+
+##### Last-modified date: 2020.5.24, 7 p.m.
