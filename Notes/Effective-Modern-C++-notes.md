@@ -1053,4 +1053,121 @@ perfect forwarding 是说有一个转发函数和目标函数，转发函数需�
   + move capture，C++14 引入 init capture 可以移动构造 capture 变量。
   + polymorphic function objects，本质是 `bind` 的第一个参数是 callable，这个 callable 可以是个函数模板，而 C++14 引入 lambda 表达式的 `auto` 参数，从而也支持了这一点。
 
-##### Last-modified date: 2020.5.24, 7 p.m.
+## Chapter 7  The Concurrency API
+
+### Item 35  Prefer task-based programming to thread-based
+
++ 异步执行一个函数有两种方法：`std::thread` 和 `std::async`：
+
+  ```c++
+  int doAsyncWork();
+  
+  std::thread t(doAsyncWork);
+  
+  auto fut = std::async(doAsyncWork);
+  ```
+
++ `async` 相比 `thread` 有如下优点：
+
+  + 能更方便地获取返回值、捕获异常；
+  + 使用默认的 policy 可以将线程管理的任务交给系统。
+
+### Item 36  Specify std::launch::async if asynchronicity is essential
+
++ `std::async` 有两种 policy：`async` 和 `deferred`，前者确保异步执行，后者推迟执行直到调用 `async` 的线程调用了 `get` 或 `wait`。如果不指定 policy，则系统会根据负载自动指定。
+
++ 让系统来指定的话会有一些问题：
+
+  + 由于没有办法确定函数是不是在一个新的线程中执行，所以当函数读写一些 thread local 的变量时需要小心；
+  + 如果系统指定 `deferred`，那么 `wait_for` 的返回值也会是 `deferred`，需要将这一点考虑进来；
+  + 如果系统指定 `deferred`，并且没有 `get` 或 `wait`，那么函数不会被执行。
+
+  必要的话需要手动指定 policy 为 `async`。
+
+### Item 37  Make std::threads unjoinable on all paths
+
++ `std::thread` 有两个状态：joinable 和 unjoinable
+
+  + joinable 是说 `std::thread` 和一个线程相对应，这个线程可以是处于等待执行、正在执行、阻塞或终止的状态；
+  + unjoinable 是说 `std::thread` 不和任何一个线程相对应，有以下一些情况会导致一个 `std::thread` unjoinable：
+    + 默认构造一个 `std::thread`，没有传进去一个函数。`std::thread` 没有东西执行，自然就不会绑定到任何一个线程；
+    + 被移动的 `std::thread`，原先和该 `std::thread` 绑定的线程被移动到了另一个 `std::thread`（`std::thread` 禁用拷贝）；
+    + 已经被 `join` 的 `std::thread`。调用 `join` 方法会等待函数执行完成并回收线程；
+    + 已经被 `detach` 的 `std::thread`。调用 `detach` 方法强行断开 `std::thread` 和某个线程的关联。
+
++ 如果一个 joinable `std::thread` 的析构函数被调用，程序将会终止。因为程序无法决定使用隐式的 `join` 还是隐式的 `detach`：
+
+  + 如果使用隐式的 `join`，会带来性能上的问题。因为析构 `std::thread` 意味着其中执行的函数已经不再重要，再花费时间等待其执行完成就没有必要了。
+  + 如果使用隐式的 `detach`，则会带来正确性上的问题。因为 `std::thread` 在执行时往往会修改它存在的栈帧中的数据，而直接将其 `detach` 然后继续执行主线程就有可能导致主线程的下一个栈帧和之前 `std::thread` 的栈帧有重合部分，主线程中的数据就好像是莫名其妙被修改了一样。
+
+  好的解决方法是通知 `std::thread` 立刻停止执行其中的函数，但是 C++11 并不支持这一点。
+
++ 程序员应当确保在任何一条执行路径中，`std::thread` 最终处于 unjoinable 的状态。而手动保证这一点是很难的，但是可以借用 RAII 的概念，在 `std::thread` 上封装一个类，在析构函数中将 `std::thread` 的状态改变成 unjoinable。
+
+### Item 38  Be aware of varing thread handle destructor behavior
+
++ `async` 的 task 和 `std::thread` 一样，都和一个线程相对应，它们称为 thread handle（线程句柄）
++ 但是它们析构时的行为不太一样，`future` 析构时，大部分情况下就是直接析构，不 `join` 也不 `detach`，只是将 shared state 的 reference count 减一；而当满足以下三个条件时，析构会阻塞住直到 task 执行完（就像被调了 `join` 一样）：
+  + 这个 `future` 和 `std::async` 创建的 shared state 相关联；
+  + `std::async` 的 policy 是 `async`（不管是指定的还是系统选择的）；
+  + 这个 `future` 是和这个 shared state 相关联的最后一个 `future`。
+
+### Item 39  Consider void futures for one-shot event communication
+
++ 使用 condition variable 和 flag 可以实现同步机制（detect - react，某一线程达到某个条件时，另一线程才能继续执行），但是实现的方式并不优雅（需要互斥锁、需要防止假醒等等）
+
++ 使用 `promise` 和 `future` 能达到类似的效果，但是缺点是只能做一次同步：
+
+  ```c++
+  std::promise<void> p;
+  void react(); // func for reacting task
+  void detect() // func for detecting task
+  {
+   	std::thread t([] {
+   		p.get_future().wait();	// suspend
+   		react(); 
+   	});
+   	p.set_value();	// awake
+      t.join();
+  }
+  ```
+
+  使用 `shared_future` 可以一次通知多个线程。
+
+### Item 40  Use std::atomic for concurrency, volatile for special memory
+
++ `std::atomic` 提供一种原子操作的手段，对 `atomic` 变量的 RMW（Read - Modify - Write）操作是原子的；此外它还提供一种类似 barrier 的机制，即在 `atomic` 操作前的语句不会被 reorder 到 `atomic` 操作后。
++ `volatile` 则是用来告诉编译器某块内存是特殊的，比如用于 memory-mapped I/O 的内存（和外围设备通信），这就决定了编译器对这些内存的读写操作不能做像正常内存那样的优化（比如多次读就合并为一次，多次写就只写最后一次）。
+
+## Chapter 8  Tweaks
+
+### Item 41  Consider pass by value for copyable parameters that are cheap to move and always copied
+
++ 当需要根据参数为左值还是右值做不同的处理时，可以使用重载或者完美转发，但是它们都有各自的缺点。C++11 引入的移动语义使另一种方法成为可能：pass by value：
+
+  ```c++
+  void addName(std::string newName)
+  { names.push_back(std::move(newName)); }
+  ```
+
++ C++11 中的值传递，对于左值参数调用拷贝构造，而对于右值参数则会调用移动构造。所以整体来看相比于重载和完美转发，值传递性能上只多了一次移动的开销。
+
+  但是注意，值传递仅建议使用于：
+
+  + copyable 的参数。对于禁用拷贝的参数，重载只有右值版本，值传递便没有优势了（本身值传递相对于重载的优势就是后者要维护两个函数）
+  + cheap to move 的参数。很好理解，毕竟值传递会多一次移动的开销。
+  + always copied 的参数。这一点是说如果参数不总是被 copy（这里的 copy 是 “副本” 的含义，可以通过拷贝也可以通过移动）的话，重载或者完美转发事实上不会有任何开销，而值传递至少还要构造和析构参数。
+
++ 此外，通过赋值来制作参数副本的情况比通过构造要复杂得多，需要考虑诸如内存分配、优化等等问题。而且如果形参是父类，实参是子类，还容易导致 slicing problem。
+
+### Item 42  Consider emplacement instead of insertion
+
++ 大部分情况下，emplace 操作是比 insert 高效的（省去了临时对象的构造和析构），但是并非全部情况。有一些启发式的方法可以帮助判断哪些情况下 emplace 确实比 insert 高效：
+  + 新对象被构造进容器，而非赋值进去，即添加的操作不会影响容器中原来的元素；
+  + 添加操作的参数类型和容器元素的类型不同；
+  + 容器允许元素重复。
++ 除了以上这些情况，emplace 操作还有一些小瑕疵：
+  + 当 emplace 的参数有 `new` 时，在 `new` 出来的资源被对象接管前，会有一个真空期，如果此时抛出异常会导致内存泄漏；
+  + 当 emplace 的参数类型和容器元素类型不一致时，即使容器元素类的构造声明了 `explicit`，emplace 操作仍能执行，但是 insert 不行（因为需要进行一次隐式转型）。
+
+##### Last-modified date: 2020.5.25, 5 p.m.
