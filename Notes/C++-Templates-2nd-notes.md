@@ -165,4 +165,118 @@
   }
   ```
 
-##### Last-modified date: 2020.6.6, 6 p.m.
+## Chapter 5  Tricky Basics
+
++ 当一个依赖于模板参数的名字是类型名时，需要用 `typename` 显式指定：
+
+  ```c++
+  template<class T>
+  class MyClass {
+  	void foo() {
+  		typename T::SubType* ptr;
+  	}
+  };
+  ```
+
+  如果此处没有 `typename`，`*` 会被解析成乘号。
+
++ 对于一些内置类型的 local 变量，是不会默认初始化的，所以对于模板参数类型的变量，最好能显式地初始化一下：
+
+  ```c++
+  template<typename T>
+  void foo()
+  {
+  	T x{}; // x is zero (or false) if T is a built-in type
+  }
+  ```
+
++ 在类模板中，由于模板参数不同而实例化出的不同模板类属于不同的类型，彼此之间不能直接访问私有成员，除非使用 friend：
+
+  ```c++
+  template<typename T>
+  class Stack {
+      template<typename> friend class Stack;
+  };
+  ```
+
++ 类中的成员函数模板偏特化时需要定义在头文件中（类外作用域），要显式地声明成 inline，否则多个编译单元引用这个头文件时会出现重复定义的问题：
+
+  ```c++
+  class A {
+  public:
+      template<typename T>
+      T f() {}
+  };
+  
+  template<>
+  inline bool A::f<bool>()  {}
+  ```
+
++ 有的时候左尖括号可能被解析成模板参数列表的开始，也可能被解析成小于号，此时可以用 `template` 关键字显式指定为前者（这种情况一般是左尖括号跟在一个依赖于模板参数的名字之后，就像显式指定 `typename` 一样）：
+
+  ```c++
+  template<unsigned long N>
+  void printBitset (std::bitset<N> const& bs) {
+  	std::cout << bs.template to_string<char, std::char_traits<char>,
+  		std::allocator<char>>();
+  }
+  ```
+
++ C++14 引入变量模板（variable template）：
+
+  ```c++
+  template<typename T>
+  constexpr T pi{3.1415926535897932385};
+  ```
+
+  变量模板有一个用处是简化代码（类似 using 和 typedef 在使用模板时的区别）：
+
+  ```c++
+  template<typename T>
+  constexpr bool isSigned = std::numeric_limits<T>::is_signed;
+  
+  // isSigned<char>
+  // vs.
+  // std::numeric_limits<char>::is_signed
+  ```
+
++ 模板参数本身可以是一个类模板（不可以是函数模板或变量模板），这种用法称为 template template parameter：
+
+  ```c++
+  template<typename T, template<typename> class Cont = std::deque>
+  class Stack {};
+  ```
+
+  类模板作为模板参数之一需要用 `class` 关键字标识，C++17 以后也可以用 `typename`。
+
+  注意，当类模板作为模板参数之一时，实参中的类模板和形参中的类模板的模板参数列表需要完全匹配：
+
+  ```c++
+  // 形参中类模板的模板参数列表是 <typename, typename>
+  template<typename T, template<typename, typename> class>
+  class Stack {};
+  
+  // 实参中类模板的模板参数列表也是 <typename, typename>
+  template<typename T, typename>
+  using V = vector<T>;
+  
+  Stack<int, V> s;
+  ```
+
+## Chapter 6  Move Semantics and enable_if<>
+
++ 如同 *Effective Modern C++* Item 27 中讲的那样，当重载函数中有使用 universal reference 作为参数的版本时，其往往会捕获到比我们预想中更多的调用。解决方法之一是使用 `enable_if<>`。
++ `enable_if<>` 的第一个参数是一个编译期表达式，第二个参数是一个可选的类型。如果表达式为真，那 `enable_if<>` 的结果就是其第二个参数（如果没有第二个参数就是 void）；如果表达式为假，那结果为未定义（所谓 `enable_if<>` 的结果是指其中的 `type` 类型别名），这将导致使用 `enable_if<>` 的模板被忽略。
++ 但毕竟使用 `enable_if<>` 来选择性地忽略模板只是一种 workaround，语义更加清楚的做法是使用 C++20 引入的 concepts。
+
+## Chapter 7  By Value or by Reference?
+
++ 对于 pass by value，并非每次都是真的 copy，可以分为以下几种情况：
+
+  + 实参为 lvalue（左值），调用拷贝构造；
+  + 实参为 prvalue（纯右值），先尝试不调任何构造，如果不行的话调用移动构造；
+  + 实参为 xvalue（将亡值），调用移动构造。
+
+  还需要注意的一点是，pass by value 会使参数 decay：去掉 cvr 的限定符，数组和函数都变成指针。
+
+##### Last-modified date: 2020.6.7, 7 p.m.
