@@ -279,4 +279,69 @@
 
   还需要注意的一点是，pass by value 会使参数 decay：去掉 cvr 的限定符，数组和函数都变成指针。
 
-##### Last-modified date: 2020.6.7, 7 p.m.
+## Appendix B  Value Categories
+
++ **表达式**有类型（type），也有值类别（value category）。在 C++11 之前，值类别只有 lvalue（左值）和 rvalue（右值）两种。考虑这样一个场景：
+
+  ```c++
+  int b = 3;
+  int a = b;
+  ```
+
+  + 第一条语句中，`3` 是表达式，类型为 int，值类别为 rvalue；
+  + 第二条语句中，`b` 是表达式，类型为 int，值类别为 lvalue。
+  + 需要注意的是第一条语句中的 `b` 和第二条语句中的 `a` 它们都是 “命名实体”，而非表达式，所以没有值类别的概念。
+
+  但是说第二条语句中的 `b` 是 lvalue 也不完全准确，事实上当 lvalue 出现在赋值号右边时，通常会有一个 lvalue-to-rvalue conversion，以及一条 load 指令。
+
++ C++11 之后，值类别的概念得到扩充，一共有三个基础类别（lvalue，左值；xvalue，将亡值；prvalue，纯右值）和两个复合类别（glvalue，泛左值；rvalue，右值）：
+
+  ```
+              expression
+              /        \
+          glvalue     rvalue
+          /    \      /    \
+       lvalue   xvalue   prvalue
+  ```
+
+  + lvalue（左值）：
+    + 表示命名实体的表达式（例如变量名、函数名）
+    + 被 `*` 运算符作用的表达式（解引用）
+    + 字符串字面量（常量左值）
+    + 返回值是左值引用（或函数类型的右值引用）的函数调用
+  + prvalue（纯右值）：
+    + 除了字符串字面量以外的字面量（对于自定义字面量，it depends）
+    + 被 `&` 运算符作用的表达式（取地址）
+    + 算术运算表达式
+    + 返回值是非引用类型的函数调用
+    + lambda 表达式
+  + xvalue（将亡值）：
+    + 返回值是对象类型的右值引用的函数调用
+    + 转换到右值引用的类型转换表达式
+
++ 用 `decltype((x))` 可以获取表达式 `x` 的值类别：
+
+  + 结果为 `type`，则 `x` 是 prvalue；
+  + 结果为 `type&`，则 `x` 是 lvalue；
+  + 结果为 `type&&`，则 `x` 是 xvalue。
+
+  `decltype` 参数加上了双括号是因为对于 `x` 是一个命名实体的情况，`decltype` 将返回 `x` 的声明时类型，而非 `x` 作为表达式时的类型：
+
+  ```c++
+  int x;
+  // decltype(x) -> int
+  // decltype((x)) -> int& -> lvalue
+  ```
+
++ 引用类型和值类别有两个重要的交互方式：
+
+  + 每种引用类型都对初始化表达式的值类别有要求：
+    + 非常量左值引用只能用左值表达式（lvalue）来初始化；
+    + 右值引用只能用右值表达式（xvalue，prvalue）来初始化；
+    + 常量左值引用可以用所有值类别的表达式来初始化。
+  + 函数的返回值类型决定了函数调用表达式的值类别：
+    + 返回值是左值引用（`type&`）或函数类型的右值引用的函数调用是 lvalue；
+    + 返回值是对象类型的右值引用（`type&&`）的函数调用是 xvalue；
+    + 返回值是非引用类型（`type`）的函数调用是 prvalue。
+
+##### Last-modified date: 2020.6.9, 4 p.m.
