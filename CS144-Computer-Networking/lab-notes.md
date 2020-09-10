@@ -18,4 +18,12 @@ g++ -v
 
 + `telnet` is used as a client, connecting to a server while `netcat` can be used as a server, listening on a port.
 
-##### Last-modified date: 2020.9.7, 9 p.m.
+## Lab 1  Stitching substrings into a byte stream
+
++ use `.base()` method to convert a `reverse_iterator` to `iterator`
+
+## Lab 2  The TCP receiver
+
++ you may find [`numeric_limits`](https://en.cppreference.com/w/cpp/types/numeric_limits) is helpful sometimes
+
+##### Last-modified date: 2020.9.10, 8 p.m.
