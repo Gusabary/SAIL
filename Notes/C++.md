@@ -839,4 +839,29 @@ C++ 提供了四种用于类型转换的关键字：`dynamic_cast`, `static_cast
 
 + `dynamic_pointer_cast`, `static_pointer_cast` 以及 `const_pointer_cast` 在 C++11 就引入了，而 `reinterpret_pointer_cast` 到 C++17 才引入。
 
-##### Last-modified date: 2020.5.17, 12 p.m.
+## STL Iterators
+
++ `stack`，`queue` 以及 `priority_queue` 没有迭代器
+
++ 数组类容器：`vector` 和 `deque` 拥有 random-access 迭代器。当 erase 一个元素时，两者的行为略有不同：前者会将被 erase 的元素之后所有元素往前移一位，所以迭代器会指向后一个元素；而后者可能将被 erase 的元素之后所有元素往前移一位，也可能将被 erase 的元素之前所有元素往后移一位（取决于其在 deque 中的位置）
+
+  ```c++
+  deque<int> v{1, 2, 3, 4, 5};
+  
+  auto it = next(v.begin());
+  v.erase(it);
+  cout << *it << endl;	// 1
+  
+  it = prev(v.end(), 2);
+  v.erase(it);
+  cout << *it << endl;	// 5
+  ```
+
++ 链表类容器：`list`，`map` 以及 `set` 拥有 bidirectional 迭代器。当 erase 一个元素时，迭代器所指元素不会改变，并且迭代器仍能通过自增或自减回到链表上，只是该元素无法再从链表中访问到了。
+
++ 但是总之，erase 一个迭代器所指元素后，最好不要再对该迭代器进行操作了。
+
++ *[reference](https://www.softwaretestinghelp.com/iterators-in-stl/)*
+
+##### Last-modified date: 2020.9.19, 12 p.m.
+
