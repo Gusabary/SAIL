@@ -279,6 +279,80 @@
 
   还需要注意的一点是，pass by value 会使参数 decay：去掉 cvr 的限定符，数组和函数都变成指针。
 
++ pass by reference 不会使参数 decay。
+
++ 当形参为 `T&` 时，看似不能接受右值作为实参，但如果是个 `const` 右值的话（例如 `const int`），`T&` 就会被推断为 `const int&`，就可以接受右值了（即先做类型推断，再做 value category 的检查）
+
++ 只有在完美转发的情形中，`T` 才可能被推断为 reference（当实参为左值时）
+
++ 使用 `std::ref()` 或 `std::cref()` 可以在 caller side 决定是 pass by value 还是 pass by reference。实际上 `std::ref()` 以及 `std::cref()` 的作用在于创建一个 `std::reference_wrapper<>` 类型的对象，指向原始对象，然后 pass by value（有点像传进去一个指针，但要更加优雅一些）。而`std::reference_wrapper<>` 类型支持到原始对象类型的隐式转换，所以可以当成原始对象使用（而不用像指针那样解引用），但是需要注意的是，当成原始对象使用仍需要经过一次隐式转换。
+
++ decay 有利有弊：好处在于忽略数组长度信息，将长度不同的数组判定为相同类型，便于处理；坏处也同样在于丢失了长度信息，无法区分数组和指针。
+
+## Chapter 8  Compile-Time Programming
+
++ 对于要求返回值为编译时常量的场合（包括在全局或 namespace scope 中定义常量），`constexpr` 函数会在编译时调用（只要入参都是编译时常量）；否则（例如在 block scope 中定义常量），`constexpr` 函数理论上可以推迟到运行时调用（即使入参均为编译时常量）
+
++ 利用偏特化可以进行 execution path selection 的操作：
+
+  ```c++
+  template<int SZ, bool = isPrime(SZ)>
+  struct Helper;
+  
+  template<int SZ>
+  struct Helper<SZ, false> {};
+  
+  template<int SZ>
+  struct Helper<SZ, true> {};
+  ```
+
+  但是函数模板并不支持偏特化，workaround 之一是声明为类中的 static 方法，然后去偏特化这个类。
+
++ 当编译器在决定选择函数的哪个重载版本时，会先尝试替换函数模板中的类型参数（在参数列表以及返回值中），如果替换后的类型会导致错误，那么编译器会将此重载版本忽略，而非报错，即”替换失败并非错误“。
+
+  此机制可以用来对模板的类型参数做一些限制，常用的方法比如 `enable_if`：直接判断类型参数是否符合某条件，如果不符合将该模板禁用：
+
+  ```c++
+  template<typename T, typename = std::enable_if_t<std::is_same_v<T, int>>>
+  void f(T x) {}
+  ```
+
+  `enable_if` 本质上是一个 struct 模板，该模板接受两个类型参数，第一个为编译期表达式，第二个可选（默认 void），为 `enable_if::type` 的类型。巧妙的地方在于该模板偏特化了一个第一个参数为 true 的版本：
+
+  ```c++
+  template<bool, typename _Tp = void>
+  struct enable_if
+  { };
+  
+  template<typename _Tp>
+  struct enable_if<true, _Tp>
+  { typedef _Tp type; };
+  ```
+
+  只有当第一个参数为 true 时，`enable_if` 才有 type 字段；也就是说当第一个参数为 false 时，如果进行类型参数替换，`enable_if_t` 会导致一个错误，而又由于 SFINAE 的原则，该模板会被忽略。
+
++ 除了 `enable_if`，还有一个利用 SFINAE 对模板参数进行限制的方法：`decltype`
+
+  需要注意的一个事实是所谓的“替换”，指的只是替换参数列表和返回值中的类型参数（函数体内的代码并不适用 SFINAE，替换后的错误不会被忽略，而是会报错）。
+
+  具体的做法是将需要检查的表达式以 trailing return type 的形式置于函数签名之后：
+
+  ```c++
+  template<typename T>
+  auto len(T const& t) -> decltype((void)(t.size()), typename T::size_type())
+  {
+  	return t.size();
+  }
+  ```
+
+  有几点需要解释：
+
+  + `decltype` 可以接受多个参数（注意 `decltype` 的参数是表达式而非类型，所以在 `T::size_type` 后需要加上一对括号，大概是默认构造的意思），推断出的类型为最后一个表达式的类型。
+  + 将 `t.size` 转型成 `void` 是为了防止 `T` 类型重载了 `,` 运算符
+  + 虽然 `decltype` 的参数中只有最后一个会决定其推断出的类型（其余的表达式都是 dummy objects，甚至不会调构造），但是需要所有的表达式都合法才能进行正确的替换（即不被 SFINAE out）
+
++ 编译时 if：`if constexpr` 的判断条件需要是一个编译时定值，条件为否的分支会在编译期被 discard，但是其中仍然会进行一些编译时刻的检查（例如类型检查等等），除非该 `if constexpr` 是在函数模板中且语句与模板的类型参数相关（此时相关检查推迟到实例化时刻而非定义时刻）
+
 ## Appendix B  Value Categories
 
 + **表达式**有类型（type），也有值类别（value category）。在 C++11 之前，值类别只有 lvalue（左值）和 rvalue（右值）两种。考虑这样一个场景：
@@ -344,4 +418,4 @@
     + 返回值是对象类型的右值引用（`type&&`）的函数调用是 xvalue；
     + 返回值是非引用类型（`type`）的函数调用是 prvalue。
 
-##### Last-modified date: 2020.6.9, 4 p.m.
+##### Last-modified date: 2020.9.26, 10 a.m.
