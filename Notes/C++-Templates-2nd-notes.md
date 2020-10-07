@@ -367,6 +367,14 @@
 
 + 目前有一种方法可以降低 include 太多头文件带来的性能开销：Precompiled Headers。即如果多个源文件以一些相同的 include 起始，那么就可以先将这些相同的 include 单独编译，然后在编译这些源文件时直接 reload 即可。也就是说相同的部分只需要编译一次。
 
+## Chapter 10  Basic Template Terminology
+
++ 将模板形参替换为实参的过程称为 substitution，substitution 可以是尝试性的（SFINAE），通过 substitution 创建模板实例的过程称为 instantiation，由 instantiation 创建出来的实体称为 specialization。
+
+  specialization 有 explicit specialization 和 generated specialization 之分。前者是程序员显式指定特化版本，而后者是由编译器进行的实例化。
+
+  此外，仍然持有模板参数的 specialization 称为 partial specialization，当讨论 explicit specialization 以及 partial specialization 时，原模板一般称为 primary template。
+
 ## Appendix B  Value Categories
 
 + **表达式**有类型（type），也有值类别（value category）。在 C++11 之前，值类别只有 lvalue（左值）和 rvalue（右值）两种。考虑这样一个场景：
@@ -432,4 +440,4 @@
     + 返回值是对象类型的右值引用（`type&&`）的函数调用是 xvalue；
     + 返回值是非引用类型（`type`）的函数调用是 prvalue。
 
-##### Last-modified date: 2020.10.2, 6 p.m.
+##### Last-modified date: 2020.10.7, 10 p.m.
