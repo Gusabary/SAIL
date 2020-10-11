@@ -375,6 +375,32 @@
 
   此外，仍然持有模板参数的 specialization 称为 partial specialization，当讨论 explicit specialization 以及 partial specialization 时，原模板一般称为 primary template。
 
+## Chapter 11  Generic Libraries
+
++ 函数指针作为 callable 参数传递时，实参可以是函数指针，也可以直接是函数名，因为后者会 decay 成函数指针类型。
+
+  当接受 callable 作为入参时，需要处理 callable 为类方法的情况：类方法的调用和一般 callable 的调用形式不一样（`obj.f()` vs. `f()`），这给通用库的编写带来了麻烦。C++17 引入的 `std::invoke()` 解决了这一问题：`invoke` 的第一个参数为 callable，当其为类方法时，将 `invoke` 的第二个参数作为 `this`，第三个参数及其以后的参数作为实参进行调用；当其为一般 callable 时，将第二个参数及其以后的参数作为实参调用。以此统一了写法，方便了通用库的编写。
+
+  `std::invoke()` 还有一个用途是用来实现 wrapping functions，比如需要在调用函数前或后记录 log 等等。
+
++ type traits 可以对类型进行检查和修改，需要注意一些特殊情况，比如 `std::remove_const_t<const int &>` 的结果仍然是 `const int &`，因为引用并不是 const，所以在 remove const 以及 reference 的时候需要注意次序：`std::remove_const_t<std::remove_reference_t<const int &>>`， 当然也可以直接用 `std::decay_t<const int &>`。
+
++ `std::addressof` 可以获取到命名实体的地址，多适用于重载了 `&` 运算符的情况。
+
++ `std::declval` 可以在不创建对象的情况下获取对象的右值引用，但是只能用于 unevaluated operands（比如 `decltype`，`sizeof`），也就是说 unevaluated operands 需要对象作为参数但不求值，所以就可以用 `std::declval` 作为一个占位符。原理大概是 `std::declval` 只有声明而没有实现，所以当试图求 `std::declval` 的值时便会报错。
+
++ perfect forwarding 不仅可以 forward parametes，也可以 forward local value：
+
+  ```c++
+  template<typename T>
+  void foo(T x) {
+  	auto&& val = get(x);
+  	set(std::forward<decltype(val)>(val));
+  }
+  ```
+
++ 在定义类模板时，有时会因为对模板的类型参数应用了某些 type traits 而使得其只能是 complete type，这减少了该类模板的应用场景（比如 struct 中有字段为指向该 struct 的指针时，该 struct 就是一个 incomplete type）。为了解决这一问题，可以将应用 type traits 的方法重写为函数模板，这样求值的过程被推迟到了类型参数成为 complete type 以后。
+
 ## Appendix B  Value Categories
 
 + **表达式**有类型（type），也有值类别（value category）。在 C++11 之前，值类别只有 lvalue（左值）和 rvalue（右值）两种。考虑这样一个场景：
@@ -440,4 +466,4 @@
     + 返回值是对象类型的右值引用（`type&&`）的函数调用是 xvalue；
     + 返回值是非引用类型（`type`）的函数调用是 prvalue。
 
-##### Last-modified date: 2020.10.7, 10 p.m.
+##### Last-modified date: 2020.10.11, 11 p.m.
