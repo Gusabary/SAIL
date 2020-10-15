@@ -108,4 +108,97 @@
 
 + And the second approach is on a global basis, using `CMAKE_CXX_FLAGS` in the CMake file or `-D` option from the command line.
 
-##### Last-modified date: 2020.10.14, 11 p.m.
+### 1.9  Setting the standard for the language
+
++ CMake provides two ways to specify the C++ standard you want to use. The first is still on a per-target basis:
+
+  ```cmake
+  set_target_properties(animal-farm
+    PROPERTIES
+      CXX_STANDARD 14
+      CXX_EXTENSIONS OFF
+      CXX_STANDARD_REQUIRED ON
+    )
+  ```
+
+  If `CXX_STANDARD_REQUIRED` flag is set, the version specified in `CXX_STANDARD` is required, which is to say, C++14 has to be available. If it's unset, a latest version will be used as an alternative if C++14 isn't available.
+
++ And naturally, the second approach is on a global basis, using `CMAKE_CXX_STANDARD` and `CMAKE_CXX_STANDARD_REQUIRED`.
+
++ Interestingly, CMake even allows finer control over the language features (such as variadic templates, automatic return type deduction, etc.) with `target_compile_features`.
+
+### 1.10  Using control flow constructs
+
++ We can use `foreach-endforeach` and `while-endwhile` to construct a loop control flow in CMake. `foreach` can be used in four ways:
+  + `foreach(loop_var arg1 arg2)`, or `foreach(loop_var ${list})`
+  + `foreach(loop_var RANGE total)`
+  + `foreach(loop_var IN LISTS list)` (`list` here will be expanded automatically)
+  + `foreach(loop_var IN ITEMS item)` (`item` here won't be expanded automatically)
++ Just like target, files also have properties in CMake, we can use `set_source_file_properties` and `get_source_file_property` to set and get them.
+
+## Chapter 2  Detecting the Environment
+
+### 2.1  Discovering the operating system
+
++ We can get info about the OS from variable `CMAKE_SYSTEM_NAME` :
+
+  ```cmake
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  ```
+
++ We can always use forward slash (`/`) as path delimiter in CMake and it will automatically translate the slash for corresponding OS (e.g. for Windows, it's backward slash)
+
+### 2.2  Dealing with platform-dependent source code
+
++ CMake provides two (yep, still two) ways to add definitions to be passed to the preprocessor (which can be checked by `#ifdef`). 
+
++ The first is on a per-target basis, using `target_compile_definitions`. While the second is on a global basis, using `add_compile_definitons` (also, `add_definitions` can be used with an extra `-D`):
+
+  ```cmake
+  target_compile_definitions(hello PUBLIC "IS_LINUX")
+  add_compile_definitions("IS_LINUX")
+  add_definitions(-DIS_LINUX)
+  ```
+
+### 2.3  Dealing with compiler-dependent source code
+
++ We can get info about compiler from variable `CMAKE_CXX_COMPILER_ID`:
+
+  ```cmake
+  target_compile_definitions(hello-world PUBLIC 			      "COMPILER_NAME=\"${CMAKE_CXX_COMPILER_ID}\"")
+  ```
+
+  ```c++
+  std::cout << "compiler name is " COMPILER_NAME << std::endl;
+  ```
+
+### 2.4  Discovering the host processor architecture
+
++ We can get info about the processor (like architecture, 32 bit or 64 bit) from variables `CMAKE_HOST_SYSTEM_PROCESSOR` and `CMAKE_SIZEOF_VOID_P`.
+
++ When `add_executable`, it's not necessary to specify the source files immediately, we can defer it with `target_sources`:
+
+  ```cmake
+  add_executable(arch-dependent "")
+  
+  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i386")
+    target_sources(arch-dependent PRIVATE arch-dependent-i386.cpp)
+  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+    target_sources(arch-dependent PRIVATE arch-dependent-x86_64.cpp)
+  else()
+    message(STATUS "host processor architecture is unknown")
+  endif()
+  ```
+
+### 2.5  Discovering the host processor instruction set
+
++ We can get info about the system on which CMake runs, using `cmake_host_system_information`.
++ And we can use `configure_file` to configure a `.h` from a `.h.in`.
+
+### 2.6  Enabling vectorization for the Eigen library
+
++ `check_cxx_compiler_flag` from module `CheckCXXCompilerFlag` can be used to check whether a compiler flag is available with the current compiler and store the result of check (true or false) to a variable.
+
+  If the flag exists, we can then add it with `target_compile_options` introduced before.
+
+##### Last-modified date: 2020.10.15, 10 p.m.
