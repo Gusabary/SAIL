@@ -201,4 +201,255 @@
 
   If the flag exists, we can then add it with `target_compile_options` introduced before.
 
-##### Last-modified date: 2020.10.15, 10 p.m.
+## Chapter 3  Detecting External Libraries and Programs
+
+### 3.1  Detecting the Python interpreter
+
++ `find_package` can be used to find a package located somewhere in your system. The CMake module which takes effect is `Find<name>.cmake` when `find_package(<name>)` is called.
+
+  In addition to find the specified package, `find_package` will also set up some useful variables to indicate the result of finding:
+
+  ```cmake
+  find_package(PythonInterp REQUIRED)
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} "-c" "print('Hello, world!')")
+  ```
+
++ We can use `cmake_print_variables` from `CMakePrintHelpers` module for better print format.
+
+### 3.2  Detecting the Python library
+
++ Use `find_package` to find both Python interpreter and library. To ensure their versions corresponds, we can specify the version in `find_package`:
+
+  ```cmake
+  find_package(PythonInterp REQUIRED)
+  find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
+  target_include_directories(hello-embedded-python
+    PRIVATE
+      ${PYTHON_INCLUDE_DIRS}
+    )
+  target_link_libraries(hello-embedded-python
+    PRIVATE
+      ${PYTHON_LIBRARIES}
+    )
+  ```
+
+### 3.3  Detecting Python modules and packages
+
++ We can use `execute_process` to execute commands in child processes, and get the return value, output and error info if failure.
+
+## Chapter 4  Creating and Running Tests
+
+### 4.1  Creating a simple unit test
+
++ Use `enable_testing` and `add_test` to create tests with built-in CMake functionality:
+
+  ```cmake
+  add_executable(cpp_test test.cpp)
+  
+  enable_testing()
+  add_test(
+    NAME cpp_test
+    COMMAND $<TARGET_FILE:cpp_test>
+  )
+  ```
+
+  After the process of build, the tests can be run with a simple `ctest` or `make test`
+
++ Interestingly, the test cases can be written in any language supported by the system and the return value is used to indicate whether the test passes: zero for success and non-zero for failure.
+
+### 4.3  Defining a unit test and linking against Google Test
+
++ Use `FetchContent` to add GTest as dependency in configure time, and then link its library with our application.
++ It seems that there is a `GoogleTest` CMake module specifically for Google Test application since v3.9.
+
+### 4.6  Testing expected failures
+
++ We can use `set_tests_properties` to pass the test cases when it returns non-zero:
+
+  ```cmake
+  enable_testing()
+  add_test(example ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test.py)
+  set_tests_properties(example PROPERTIES WILL_FAIL true)
+  ```
+
+### 4.7  Using timeouts for long tests
+
++ We can also use `set_tests_properties` to set a timeout for test cases:
+
+  ```cmake
+  set_tests_properties(example PROPERTIES TIMEOUT 10)
+  ```
+
+  The test case will terminate and be marked as failure as long as it goes past the timeout.
+
+### 4.8  Running tests in parallel
+
++ Use `ctest --parallel N` to run test cases in parallel. One thing worth noting is that CMake execute test cases that take long time first in each core and then the shorter cases, in which strategy, the total time costed will be the least. Of course, in the very beginning even before the first execution, CMake is  also not aware the time cost of each test case. However, we can specify explicitly the time cost of each test case with like `set_tests_properties(example PROPERTIES COST 4.5)`.
+
+### 4.9  Running a subset of tests
+
++ CMake provides several ways to run a subset of all test cases:
+
+  + by test case names (using regular expressions): `ctest -R <reExp>`
+  + by test case indexes: `ctest -I <begin>,<end>`
+  + by test case labels: `ctest -L <label>`
+
++ Yep, we can attach labels to test cases, still using `set_tests_properties`:
+
+  ```cmake
+  set_tests_properties(
+    feature-a feature-b feature-c
+    PROPERTIES
+      LABELS "quick"
+  )
+  ```
+
+### 4.10  Using test fixtures
+
++ Usually some test cases require setup actions before running and cleanup actions after completing, we call this test fixtures. Of course create a test fixture is typically the task of testing framework like GTest, while we could also do that in CMake level.
+
++ To create test fixture with CMake, use `add_test` to create test cases for setup and cleanup actions first, and then mark them as setup and cleanup with `set_tests_properties`:
+
+  ```cmake
+  set_tests_properties(
+    setup
+    PROPERTIES
+      FIXTURES_SETUP my-fixture
+  )
+  
+  set_tests_properties(
+    cleanup
+    PROPERTIES
+      FIXTURES_CLEANUP my-fixture
+  )
+  ```
+
+  For test cases included in the fixture, mark them as `FIXTURES_REQUIRED`:
+
+  ```cmake
+  set_tests_properties(
+    feature-a
+    feature-b
+    PROPERTIES
+      FIXTURES_REQUIRED my-fixture
+  )
+  ```
+
+## Chapter 5  Configure-time and Build-time operations
+
+There are three important periods during the whole process of building with CMake:
+
++ configure time: processing the `CMakeLists.txt`
++ generation time: generating files for the native build tool
++ build time: invoking the native build tool to create the targets (executables and libraries)
+
+### 5.1  Using platform-independent file operations
+
++ When we need to execute some commands during the build, we can use `add_custom_target` to bundle those commands as a target and then use `add_dependencies` to make it a dependency of our application target:
+
+  ```cmake
+  add_custom_target(unpack-eigen
+    ALL
+    COMMAND
+      ${CMAKE_COMMAND} -E tar xzf ${CMAKE_CURRENT_SOURCE_DIR}/eigen-eigen-5a0156e40feb.tar.gz
+    COMMAND
+      ${CMAKE_COMMAND} -E rename eigen-eigen-5a0156e40feb eigen-3.3.4
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT
+      "Unpacking Eigen3 in ${CMAKE_CURRENT_BINARY_DIR}/eigen-3.3.4"
+  )
+  
+  add_dependencies(linear-algebra unpack-eigen)
+  ```
+
++ Note the argument following `COMMAND` here:
+
+  ```cmake
+  ${CMAKE_COMMAND} -E rename eigen-eigen-5a0156e40feb eigen-3.3.4
+  ```
+
+  Actually `-E` indicates the command mode of CMake, which is followed by the platform-independent command applied in CMake.
+
++ Use `cmake -E` to list all those platform-independent commands.
+
+### 5.2  Running a custom command at configure time
+
++ Note that when using `execute_process`, we can specify many commands to execute, and the output of the last command will be passed as the input of the next one, which means only the last output can be picked out.
++ Remember commands in `execute_process` are executed in configure time.
+
+### 5.3  Running a custom command at build time: I. Using add_custom_command
+
++ If we use `add_custom_command` with `OUTPUT` as the first argument, it will generate some files when any target in the same `CMakeLists.txt` or which uses any file generated by the custom command is built:
+
+  ```cmake
+  add_custom_command(
+    OUTPUT
+      ${wrap_BLAS_LAPACK_sources}
+    COMMAND
+      ${CMAKE_COMMAND} -E tar xzf ${CMAKE_CURRENT_SOURCE_DIR}/wrap_BLAS_LAPACK.tar.gz
+    COMMAND
+      ${CMAKE_COMMAND} -E touch ${wrap_BLAS_LAPACK_sources}
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/wrap_BLAS_LAPACK.tar.gz
+    COMMENT
+      "Unpacking C++ wrappers for BLAS/LAPACK"
+    VERBATIM
+  )
+  ```
+
+### 5.4  Running a custom command at build time: I. Using add_custom_target
+
++ To circumvent the limitation that only targets in the same `CMakeLists.txt` with the `add_custom_command` could trigger it, we can combine both `add_custom_command` and `add_custom_target`:
+
+  ```cmake
+  add_custom_target(BLAS_LAPACK_wrappers
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+      ${MATH_SRCS}
+    COMMENT
+      "Intermediate BLAS_LAPACK_wrappers target"
+    VERBATIM
+  )
+  
+  add_custom_command(
+    OUTPUT
+      ${MATH_SRCS}
+    COMMAND
+      ${CMAKE_COMMAND} -E tar xzf ${CMAKE_CURRENT_SOURCE_DIR}/wrap_BLAS_LAPACK.tar.gz
+    WORKING_DIRECTORY
+      ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/wrap_BLAS_LAPACK.tar.gz
+    COMMENT
+      "Unpacking C++ wrappers for BLAS/LAPACK"
+  )
+  ```
+
+  so that the custom commands will always be executed.
+
+### 5.5  Running custom commands for specific targets at build time
+
++ If we use `add_custom_command` with `TARGET` as the first argument, it will register some, like, hooks to a target:
+
+  ```cmake
+  add_custom_command(
+    TARGET
+      example
+    POST_BUILD
+    COMMAND
+      ${PYTHON_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/static-size.py
+        $<TARGET_FILE:example>
+    COMMENT
+      "static size of executable:"
+    VERBATIM
+  )
+  ```
+
++ We can register the hook to two times: `PRE_LINK` (for Linux, `PRE_BUILD` has the same effect with `PRE_LINK`) and `POST_BUILD`, whose names are self-explanatory.
+
+##### Last-modified date: 2020.10.17, 5 p.m.
