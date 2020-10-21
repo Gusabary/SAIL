@@ -335,7 +335,7 @@
   )
   ```
 
-## Chapter 5  Configure-time and Build-time operations
+## Chapter 5  Configure-time and Build-time Operations
 
 There are three important periods during the whole process of building with CMake:
 
