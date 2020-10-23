@@ -90,4 +90,73 @@
 
   Moreover, `std::atomic` can also apply for `std::shared_ptr` since C++20.
 
-##### Last-modified date: 2020.10.21, 11 p.m.
+### 1.4  The Class Template `std::atomic_ref` (C++20)
+
++ Before getting close to `std::atomic_ref`, I think we should first know about `std::ref`. `std::ref` is a, umm, free function which returns a `std::reference_wrapper<T>`. That is what really matters.
+
+  `std::reference_wrapper` is essentially a class template. Its instantiated class has `sizeof` of 8, in another word, it holds just a pointer as member (so it seems more reasonable to be pointer wrapper?).
+
+  It can be converted implicitly or with `get` method to reference of the underlying type.
+
+  Different from the raw reference, it can be rebind with `operator=`, so it's by definition copyable and assignable.
+
+  *[reference](https://www.nextptr.com/tutorial/ta1441164581/stdref-and-stdreference_wrapper-common-use-cases)*
+
++ Now things are clear, `std::atomic_ref` is atomic version of `std::ref`. Similar to `std::atomic`, `std::atomic_ref` also has extended methods for `T*` partial specialization and more extended methods for arithmetic full specialization.
+
+### 1.5  The Synchronization and Ordering Constraints
+
++ C++ provides six variants of memory ordering, among which the default is `std::memory_order_seq_cst`. One thing worth noting is that what can be configured with those memory ordering variants is atomic **operation** instead of atomic data type itself.
+
++ Let's introduce the six memory orderings. First we should know the fact that there are two kind of atomic operations: read and write (of course, there is a *read-modify-write*, but we can regard it essentially as a *read* plus a *write*). Each operation has an attribute indicating its memory model (the attribute has five possible values: `SeqCst`, `Acquire`, `Consume`, `Release` and `Relaxed`), to be more precise:
+
+  |                          | read                 | write     |
+  | ------------------------ | -------------------- | --------- |
+  | sequential consistency   | `SeqCst`             | `SeqCst`  |
+  | acquire-release semantic | `Acquire`, `Consume` | `Release` |
+  | relaxed semantic         | `Relaxed`            | `Relaxed` |
+
+  From the table, we can say, for example, if an atomic read operation has an attribute of `SeqCst`, it's memory model is sequential consistency; if an atomic write operation has an attribute of `Relaxed`, it's memory model is relaxed semantic.
+
+  Ok that's the mapping from attribute (which is a concept I construct) to memory model, so how about the one from the memory ordering (`std::memory_order_*`) to the attribute?
+
+  The answer is simple, each memory ordering gives corresponding attribute contained in its name:
+
+  |                                         | read      | write     |
+  | --------------------------------------- | --------- | --------- |
+  | `std::memory_order_seq_cst`             | `SeqCst`  | `SeqCst`  |
+  | `std::memory_order_acq_rel`             | `Acquire` | `Release` |
+  | `std::memory_order_release` (for write) | `Relaxed` | `Release` |
+  | `std::memory_order_acquire` (for read)  | `Acquire` | `Relaxed` |
+  | `std::memory_order_consume` (for read)  | `Consume` | `Relaxed` |
+  | `std::memory_order_relaxed`             | `Relaxed` | `Relaxed` |
+
+  Note that if you specify `std::memory_order_release` (which is designed for write operation) in an atomic read operation (`load`), the actual memory model applied will be relaxed semantic.
+
++ Now we have already know the relations between memory ordering and memory model. It's time to get closer to each kind of memory model. Wait, before that, we should tweak our mind about the atomic read and write operations:
+
+  + read is not just a single read, it's actually a potential **sync** plus a read,
+  + write is not just a single write, it's actually a write plus a potential **flush**.
+
+  Let's take a deep insight into that by inspecting memory models.
+
++ Different memory models have different details about the sync and flush:
+
+  + In **sequential consistency** memory model, the sync is to sync from **system** while the flush is also to flush to **system**;
+  + In **acquire-release semantic** memory model, the sync is to sync from **what the release thread has flushed to system**, while the flush is to flush to **system**;
+  + In **relaxed semantic** memory model, there is no sync or flush.
+
++ Above is the discussion about the variable visibility, how about the execution order?
+
+  My perspective is that if some variables need flushing, they should be evaluated first so the order is guaranteed; while if they don't need flushing, the evaluation can be delayed and they can be reordered across the boundary built by atomic operation.
+
+  The condition for sync is similar. If sync is to happen, the statements behind the atomic operation should not be reordered up, otherwise the synced variables would get polluted.
+
++ About the `Consume` attribute, there is something to point out:
+
+  + `Consume` attribute leads to, umm, more precisely, *consume-release semantic* memory model, in which the sync is to sync the **dependent variables** among what the release thread has flushed to system, which is a little bit weaker than acquire-release semantic;
+  + However, in the present stage, consume-release semantic just lives in the C++ standard. It seems that compilers map `std::memory_order_consume` to `std::memory_order_acquire`.
+
++ *[reference](https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync)*
+
+##### Last-modified date: 2020.10.23, 7 p.m.
