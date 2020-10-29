@@ -159,4 +159,155 @@
 
 + *[reference](https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync)*
 
-##### Last-modified date: 2020.10.23, 7 p.m.
+### 1.6  Fences
+
++ Fences are memory barriers, which prevent that operations in both side cannot be reordered through it.
+
+  There are three kinds of `std::atomic_thread_fence`: full fence, acquire fence and release fence. To be more specific, full fence can prevent reorder of all combinations of load and store operations, except store-load; acquire fence cannot prevent reorder of store-* while release fence cannot prevent reorder of load-*.
+
++ So how about the relation between atomics and fences. Generally speaking, fences need no atomics and they are more heavyweight.
+
+  My understanding of the *heavyweight* is that fences prevent reorder of more operation combinations than atomics with the same memory ordering. Take `std::memory_order_acquire` for an example, atomic with this memory order guarantees that read and write operations cannot be reordered before an atomic load while fences also guarantee that load operations cannot be reordered after, which is a bidirectional limit.
+
+  With the fences, atomic load and store operation with acquire/release memory model can be replaced by ones with relaxed semantic:
+
+  ```c++
+  // atomics
+  ptr.store(p, memory_order_release);
+  
+  // fences
+  atomic_thread_fence(memory_order_release);
+  ptr.store(p, memory_order_relaxed);
+  ```
+
++ For synchronization between signal handler and the code running in the **same** thread, `std::atomic_signal_fence` should be used. It seems that `std::atomic_signal_fence` emits fewer hardware fence instructions than `std::atomic_thread_fence` since it synchronizes instructions in the same thread.
+
+## Chapter 2  Multithreading
+
+### 2.1  Threads
+
++ `std::thread` has no copy operations. It accepts a callable as work package, whose return value is ignored.
+
+  The creator of `std::thread` should manage its lifecycle, i.e. it should invoke `join()` to wait the thread ends or `detach()` to detach itself from the thread. Actually, before `join()` or `detach()` is called, the thread is *joinable*, and the destructor of a joinable thread throws a `std::terminate` exception.
+
+  One thing worth noting is that detached threads will terminate with the executable binary, which means when the main thread exits, all detached threads will also exit even if their work package hasn't fully done. Take below for an example:
+
+  ```c++
+  int main() {
+      std::thread t([] { std::cout << "hello" << std::endl; });
+      t.detach();
+      // if this line is commented, "hello" may not be printed
+      // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      return 0;
+  }
+  ```
+
++ `std::thread`'s constructor is a variadic template. So if you want to pass argument by reference, it needs to use `std::ref` even if the parameter of the callable as work package is reference.
+
++ We can use `swap()` method to swap (in a move way) two threads.
+
++ We can use `std::thread::native_handle()` to get information about system-specific implementation of `std::thread`.
+
+### 2.2  Shared Data
+
++ Insertion to and extracting from global stream objects (like `std::cin`, `std::cout`) are thread-safe, although the output statements can interleave. In another word, writing to `std::cout` is not a data race but a race condition (of output statements).
+
++ There are many kinds of mutex. Most basically, there is a `std::mutex`, which supports `lock()`, `try_lock()` and `unlock()`. Then it's `std::recursive_mutex`, which can lock many times and stay locked until unlock as many times as it has locked. There also `std::timed_mutex` and `std::recursive_timed_mutex` which support `try_lock_for()` and `try_lock_until()`.
+
+  `std::shared_timed_mutex` (since C++14) and `std::shared_mutex` (since C++17) also provide a series of methods of `*_lock_shared_*`, which can be used to implement read-write lock (introduced later).
+
++ Cool, right? Since we have mutex we can write some code like this:
+
+  ```c++
+  std::mutex m;
+  m.lock();
+  sharedVariable = getVar();
+  m.unlock();
+  ```
+
+  However, it's quite prone to deadlock due to the `getVar()`: what if it throws an exception? what if it also acquire the mutex `m`? what if it's a library function and someday gets upgraded with some code you never know?
+
+  So apparently, it's better to avoid calling functions while holding a lock.
+
++ To solve deadlocks, we can use *locks*: `std::lock_guard`, `std::unique_lock`, `std::shared_lock `(since C++14) and `std::scoped_lock` (since C++17).
+
+  First let's look at `std::lock_guard`. Maybe you've heard about *RAII*. Yep, that's the mechanism `std::lock_guard` uses to solve the deadlock which happens when you forget to release the lock (maybe because an exception is thrown):
+
+  ```c++
+  {
+    std::mutex m;
+    std::lock_guard<std::mutex> lockGuard(m);
+    /* critical section */
+  }
+  ```
+
++ Then it's `std::unique_lock`, which is stronger but more expensive than `std::lock_guard`. For example it enables you to create a lock without locking the mutex immediately, recursively lock a mutex and so on.
+
+  One thing worth noting is that we can use `std::lock()`, which is a variadic template, to lock multiple mutexes in an atomic step:
+
+  ```c++
+  std::mutex a, b;
+  std::unique_lock<std::mutex> guard1(a, std::defer_lock);
+  std::unique_lock<std::mutex> guard2(b, std::defer_lock);
+  std::lock(guard1, guard2);
+  ```
+
++ Here comes `std::shared_lock`, which behaves like `std::unique_lock`, except in the condition that it's used with `std::shared_mutex` or `std::shared_timed_mutex` (which are introduced before). It can be used to implement a read-write lock. To be more precise, `std::lock_guard<std::shared_mutex>` or `std::unique_lock<std::shared_mutex>` is used for write lock while `std::shared_lock<std::shared_mutex>` is used for read lock. This is essentially because `std::shared_mutex` supports both `*_lock_*` and `*_lock_shared_*` methods which invoked separately by `std::unique_lock` and `std::shared_lock`.
+
++ Finally it's `std::scoped_lock`. Still remember the `std::lock()` function? Yep, they are very similar. Actually, `std::scoped_lock`'s constructor is a variadic template, which 1) behaves like a `std::lock_guard` when there is just one mutex argument, 2) invokes `std::lock()` when there are multiple mutex arguments.
+
+  In another word, `std::scoped_lock` can lock many mutexes in an atomic step.
+
++ Sometimes we need to ensure that objects are initialized in a thread-safe way (imagine the singleton design pattern), typically there are three ways to do that (ok, if you count in initializing objects in main thread before creation of child threads, there are four).
+
+  The first is use `constexpr` to initialize objects as constant expressions in compile time. Note that an object can be annotated as `constexpr` only if its class satisfies some restrictions. For example, it cannot have virtual base class and virtual methods; it's constructor must be empty (except for the initialization list) and const expression; its base classes and non-static members should all be initialized (in the initialization list) and so on.
+
++ The second is to use `std::call_once` and `std::once_flag`. The semantic is easy to understand: `std::call_once` is a function, which accepts two parameters, the first one is a `std::once_flag` and the second one is a callable. We can invoke `std::call_once` many times with the same `std::once_flag`, and exactly one callable of them will be executed exactly once.
+
+  Use this to implement singleton:
+
+  ```c++
+  class MySingleton {
+  private:
+      static std::once_flag initInstanceFlag;
+      static MySingleton* instance;
+      MySingleton() = default;
+      ~MySingleton() = default;
+  
+  public:
+      MySingleton(const MySingleton&) = delete;
+      MySingleton& operator=(const MySingleton&) = delete;
+  
+      static MySingleton* getInstance(){
+          std::call_once(initInstanceFlag, MySingleton::initSingleton);
+          return instance;
+      }
+  
+      static void initSingleton(){
+          instance = new MySingleton();
+      }
+  };
+  
+  MySingleton* MySingleton::instance = nullptr;
+  std::once_flag MySingleton::initInstanceFlag;
+  ```
+
++ The third is static variables with block scope. Those static variables are created exactly once and lazily, which means they won't get created until used. And since C++11, there is another guarantee: static variables with block scope are created in a thread-safe way (but it seems to be dependent on compiler implementations). So we can write a singleton class like this:
+
+  ```c++
+  class MySingleton {
+  public:
+      static MySingleton& getInstance() {
+          static MySingleton instance;
+          return instance;
+      }
+  
+  private:
+      MySingleton() = default;
+      ~MySingleton() = default;
+      MySingleton(const MySingleton&) = delete;
+      MySingleton& operator=(const MySingleton&) = delete;
+  };
+  ```
+
+##### Last-modified date: 2020.10.29, 11 p.m.
