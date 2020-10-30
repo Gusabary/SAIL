@@ -310,4 +310,130 @@
   };
   ```
 
-##### Last-modified date: 2020.10.29, 11 p.m.
+### 2.3  Thread-Local Data
+
++ Actually I've never heard about the `thread_local` keyword in C++ before. This keyword acts like `static`:
+
+  + if it qualifies a variable in namespace scope or as static class member, the variable will be created before its first usage:
+
+    ```c++
+    class A {
+    public:
+        thread_local static int x;
+    };
+    
+    thread_local int A::x;
+    ```
+
+  + if it qualifies a variable in a function, the variable will be created at its first usage:
+
+    ```c++
+    void f() {
+        thread_local int a;
+    }
+    ```
+
++ The difference between `thread_local` and `static` is that variables qualified by the former have lifecycle bound to the thread which created them while ones qualified by the latter have lifecycle bound to the main thread.
+
+### 2.4  Condition Variables
+
++ `std::condition_variable` is literally a condition variable, which provides methods like `notify_one()`, `notify_all()`, `wait()` and so on.
+
+  The `wait()` method usually accepts two parameters, the first one is a `std::unique_lock` and the second one is a callable called *Predict*. Let's take a closer look.
+
++ Why does the lock need to be a `std::unique_lock` instead of `std::lock_guard`? Be aware that when `wait()` is invoked, the lock gets released and actually we will see later that the lock gets acquired and released repeatedly, so we need a `std::unique_lock` instead of a one-time `std::lock_guard`.
+
++ Then what's the role of *Predict*? When talking about condition variables, we should be clear about these two phenomena: *lost wakeup* and *spurious wakeup*. Lost wakeup is to say the notify could come before the wait while spurious wakeup is to say the thread in waiting state could wake up itself even if there is no notification. Predict is to solve these problems:
+
+  ```c++
+  std::unique_lock<std::mutex> lck(mutex_);
+  condVar.wait(lck, []{ return dataReady; });
+  
+  // equivalent to
+  std::unique_lock<std::mutex> lck(mutex_);
+  while ( ![]{ return dataReady; }() ) {
+      condVar.wait(lck);
+  }
+  ```
+
++ The `dataReady` in the above example is a flag used to synchronize the notification. It doesn't need to be an atomic, but it must be protected by a mutex (we can use `std::lock_guard` here):
+
+  ```c++
+  {
+  	std::lock_guard<std::mutex> lck(mutex_);
+  	dataReady = true;
+  }
+  condVar.notify_one();
+  ```
+
+  If not protected by a mutex, it may happen that the modification to `dataReady` and notification are executed **rightly after the Predict check and before the condition variable wait**, which will cause the thread to wait forever.
+
+### 2.5  Tasks
+
++ Task is also a mechanism to perform work package asynchronously. Different from threads, tasks are not necessarily in another thread. Actually, the workflow of tasks is to perform the work package and produce the promise, and the result can be synchronized through a future.
+
++ `std::async` is a simple way to create a task, and its return value is the future of the task. Other than the work package, we can pass in a policy when invoking `std::async`, which can be `std::launch::deferred` for lazy evaluation or `std::launch::async` for eager evaluation.
+
+  Also, it's not necessary to assign the return value of `std::async` to a variable. In another word, we can just invoke it and dismiss its return value, in which case the future is called *fire and forget future*:
+
+  ```c++
+  std::async(std::launch::async, []{ std::cout << "fire and forget" << std::endl; });
+  ```
+
+  Note that we need `std::launch::async` to make sure a eager evaluation because we have no future to wait on.
+
+  However, there is an inconspicuous drawback here: future waits on its destructor until its promise is done. In the case of fire and forget futures, the futures are temporary, whose destructor gets invoked immediately after the `std::async` creating them. So the async is actually, umm, a fake one:
+
+  ```c++
+  std::async(std::launch::async, [] {
+      std::this_thread::sleep_for(std::chrono::seconds(5));
+      std::cout << "first thread" << std::endl;
+  });
+  /* waiting for the promise done */
+  
+  std::async(std::launch::async, [] {
+      std::this_thread::sleep_for(std::chrono::seconds(1));  
+      // get printed after 6 seconds instead of 1
+      std::cout << "second thread" << std::endl;
+  });
+  ```
+
++ `std::package_task` is another way to create a task which is not executed immediately. Actually its usage typically consists of four steps:
+
+  ```c++
+  // 1. create the task
+  std::packaged_task<int(int, int)> sumTask([](int a, int b){ return a + b; });
+  
+  // 2. assign to a future
+  std::future<int> sumResult = sumTask.get_future();
+  
+  // 3. do the execution
+  sumTask(2000, 11);
+  
+  // 4. wait on the future
+  sumResult.get();
+  ```
+
+  To my understanding, `std::async` combines the first three steps together and the task created by it cannot accept parameters.
+
+  If we want to execute the task and wait on the future multiple times, it needs to invoke the `reset()` method of `std::packaged_task`.
+
++ `std::promise` can set not only a value but also an exception with `set_exception()` method. If that's the case, the corresponding future will encounter the exception when invoking the `get()` method.
+
+  `std::future` can use `valid()` method to check if the shared state is available and use `wait_for()` or `wait_until()` to wait with a timeout. The latter returns a `std::future_status`, which is a scoped enum class with enumerations of `deferred`, `ready` and `timeout` (to be frank, I don't know what `deferred` means)
+
++ Different from `std::future`, `std::shared_future` is copyable and can be queried multiple times.
+
+  We have two ways to get a `std::shared_future`: `get_future()` method of `std::promise` and `share()` method of `std::future`. Note that after invocation of `share()`, the `valid()` method of `std::future` shall return false.
+
++ I think it needs a clarification about *available shared state* here. We know `valid()` method of `std::future` or `std::shared_future` indicates whether an available shared state exists. In another word, if it returns true, `wait()` method can be called without exception; if it returns false, `wait()` will result in an exception.
+
+  For initialized `std::future`, before the first `get()`, `wait()` or `share()`, the `valid()` will return true; while after that, `valid()` shall return false. And for initialized `std::shared_future`, `valid()` shall always return true, which means you can always query on a `std::shared_future`.
+
++ If the callable used in `std::async` and `std::packaged_task` throws an exception, it will be stored in the shared state (just like what `set_exception()` method of `std::promise` does), and rethrown when queried by future. One thing worth noting is that `std::current_exception()` can be used to get the caught exception in the catch block.
+
++ `void` as the template argument, `std::promise` and `std::future` could be used for notification and synchronization. Compared to condition variables, the task-based notification mechanism could not perform synchronization multiple times (since `std::promise` could only set its value once and `std::future` could only query once) but needn't a shared variable or mutex and isn't prone to lost wakeup or spurious wakeup.
+
+  So the conclusion is that if multiple synchronization is not needed, task-based notification mechanism is preferred.
+
+##### Last-modified date: 2020.10.30, 7 p.m.
