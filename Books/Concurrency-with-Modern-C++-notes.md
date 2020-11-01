@@ -436,4 +436,14 @@
 
   So the conclusion is that if multiple synchronization is not needed, task-based notification mechanism is preferred.
 
-##### Last-modified date: 2020.10.30, 7 p.m.
+## Chapter 3  Parallel Algorithms of the Standard Template Library
+
+### 3.1  Execution Policies
+
++ Since C++17, some STL algorithms has overload versions which permit an execution policy to be specified. There are three policies: `std::execution::seq`, `std::execution::par` and `std::execution::par_unseq` (related to vectorization which is out of scope here). 
+
++ Note that if you specify an execution policy, it will directly invoke `std::terminate` when encountering an exception, which means you have no way to catch it.
+
+  And also, data races and deadlocks are not prevent automatically by the parallel policy, which means you need to use a lock, mutex or atomic to protect data in parallel execution.
+
+##### Last-modified date: 2020.11.1, 7 p.m.
