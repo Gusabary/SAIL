@@ -32,4 +32,60 @@
 
   *For more about type deduction, refer to [Chapter 1, Effective Modern C++](http://gusabary.cn/2020/05/20/Effective-Modern-C++-Notes/Effective-Modern-C++-Notes(1)-Intro&Deducing-Types/)*
 
-##### Last-modified date: 2020.11.1, 7 p.m.
+### 1.2  Creating type aliases and alias templates
+
++ Use `using` to create type aliases and alias templates instead of `typedef` for better readability:
+
+  ```c++
+  // for using
+  using array_t = int[10]; 
+  using fn = void(byte, double); 
+  
+  template<typename T>
+  using MyAllocList = std::list<T, MyAlloc<T>>;
+  
+  // for typedef
+  typedef int array_t[10]; 
+  typedef void(*fn)(byte, double); 
+  
+  template<typename T>
+  struct MyAllocList {
+      typedef std::list<T, MyAlloc<T>> type;
+  };
+  ```
+
++ Note that alias templates cannot be partially or explicitly specialized.
+
+### 1.3  Understanding uniform initialization
+
++ Brace-initialization is a uniform method for initialization since C++11 so it's also called *uniform initialization*.
+
++ Compared to initialization method using parentheses, uniform initialization has some edges, e.g.
+
+  + It can be used to initialize non-static data member;
+  + It prevents implicit narrowing conversion;
+  + It can be used to invoke the default constructor explicitly;
+  + It can be used to initializer aggregate types conveniently.
+
+  *[reference](http://gusabary.cn/2020/05/22/Effective-Modern-C++-Notes/Effective-Modern-C++-Notes(3)-Moving-to-Modern-C++/#Item-7-Distinguish-between-and-when-creating-objects)*
+
+  But uniform initialization also has a pitfall when used: if an overload with `std::initializer_list` as parameter exists, all uniform initialization will be resolved to that version:
+
+  ```c++
+  // a vector with a single element of 5
+  std::vector<int> v{5};
+  
+  // a vector with 5 elements
+  std::vector<int> v(5);
+  ```
+
++ When it comes to type deduction, *direct initialization* and *copy initialization* differ. Precisely speaking, when direct initialization is used, the variable will be deduced as `std::initializer_list` while when copy initialization is used, it will be deduced according to the **single** element in the braces:
+
+  ```c++
+  auto a = {42};   // std::initializer_list<int>
+  auto b {42};     // int
+  auto c = {4, 2}; // std::initializer_list<int>
+  auto d {4, 2};   // error, too many
+  ```
+
+##### Last-modified date: 2020.11.2, 8 p.m.
