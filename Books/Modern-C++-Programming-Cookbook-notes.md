@@ -268,4 +268,94 @@
   }
   ```
 
-##### Last-modified date: 2020.11.3, 8 p.m.
+## Chapter 2  Working with Numbers and Strings
+
+### 2.1  Converting between numeric and string types
+
++ Use `std::to_string()` to convert a numeric (including integral and floating point type) to string.
+
++ Use `std::stoi()` to convert a string to an integer type. Other than the string, it accepts another two parameters, which are the address of variable to store the number of characters processed and the number indicating the base (default is 10).
+
+  Note that the `0` (and `0x`) prefix in the string is only valid when the base is 0 or 8 (0 or 16).
+
++ Use `std::stod()` to convert a string to a double type. It doesn't accept the number indicating the base explicitly while the string still has several forms like decimal floating point (containing `e`), binary floating point (containing `0x` and `p`), `inf` and `nan`.
+
++ The functions converting string to numeric types can throw two exceptions potentially, which are `std::invalid_argument` and `std::out_of_range`.
+
+### 2.2  Limits and other properties of numeric types
+
++ `std::numeric_limits`, which is a class template, provides some information about numeric types, among which the most common used is `::min()` and `::max()`.
++ Since C++11, all static members of `std::numeric_limits` are `constexpr`, which can be used everywhere including as constant expression, so the C-style macro of numeric properties can be deprecated completely.
++ *[reference](https://en.cppreference.com/w/cpp/types/numeric_limits)*
+
+### 2.3  Generating pseudo-random numbers
+
++ When talking about random numbers in modern C++, we need to be clear about two concepts: engines and distributions:
+
+  + **Engines** are used to produce random numbers with a uniform distribution.
+  + **Distributions** are used to convert the output of engine to a specified distribution.
+
++ So things are clear: choose an engine to produce a random number and use a distribution to convert it to, say, a range we want:
+
+  ```c++
+  std::random_device rd{};
+  auto mtgen = std::mt19937{ rd() };
+  auto ud = std::uniform_int_distribution<>{ 1, 6 };
+  for (auto i = 0; i < 20; ++i) {
+      auto number = ud(mtgen);
+  }
+  ```
+
+  First, we use `std::random_device` engine to produce a random number as seed. Then use it to seed another engine `std::mt19937`, which will be used by distributions later. And then define a uniform distribution to limit the range to between 1 and 6. Finally invoke the distribution with the chosen engine to produce random numbers in the range we want.
+
+### 2.5  Creating cooked user-defined literals
+
++ Since C++11, we can create cooked user-defined literals with `operator""`:
+
+  ```c++
+  constexpr size_t operator"" _KB(const unsigned long long size) { 
+      return static_cast<size_t>(size * 1024); 
+  } 
+  
+  auto size{ 4_KB };  // size_t size = 4096;
+  auto buffer = std::array<byte, 1_KB>{};
+  ```
+
++ There are some points to mention:
+
+  + For integral type, the argument needs to be `unsigned long long` and for floating-point type, it needs to be `long double`, i.e. literals should handle the largest possible values.
+  + It's recommended to define the literal operator in a separate namespace and then `using` it to avoid name collision.
+  + It's also recommended to prefix the user-defined suffix with an underscore (`_`) to avoid conflict with standard literal suffix introduced in C++14 (such as `s`, `min` and so on).
+
+### 2.6  Creating raw user-defined literals
+
++ Raw literal operators, as **fallbacks** of cooked literal operators, accept a string of char as parameter:
+
+  ```c++
+  T operator "" _suffix(const char*); 
+  template<char...> T operator "" _suffix();
+  ```
+
+### 2.7  Using raw string literals to avoid escaping characters
+
++ Raw string literals has two forms:
+
+  ```c++
+  R"( literal )"
+  R"delimiter( literal )delimiter"
+  ```
+
+  The principle is what you see is what you get, e.g.:
+
+  ```c++
+  auto sqlselect { 
+            R"(SELECT * 
+            FROM Books 
+            WHERE Publisher='Paktpub' 
+            ORDER BY PubDate DESC)"s
+  };
+  ```
+
+  even the `\n` will be included in the string.
+
+##### Last-modified date: 2020.11.4, 9 p.m.
