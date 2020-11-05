@@ -358,4 +358,159 @@
 
   even the `\n` will be included in the string.
 
-##### Last-modified date: 2020.11.4, 9 p.m.
+### 2.8  Creating a library of string helpers
+
++ One thing worth noting is that return value of `remove()` algorithm is the first iterator after the new range, so an extra `erase()` is needed:
+
+  ```c++
+  std::string str = "Text with some   spaces";
+  str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
+  ```
+
+### 2.9  Verifying the format of a string using regular expressions
+
++ Use a regular expression to match against a string:
+
+  ```c++
+  auto pattern {R"(^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$)"s};
+  auto rx = std::regex{pattern};
+  auto valid = std::regex_match("marius@domain.com"s, rx);
+  ```
+
++ When constructing the `std::regex`, we can specify some extra options. e.g. to ignore letter case:
+
+  ```c++
+  auto rx = std::regex{pattern, std::regex_constants::icase}; 
+  ```
+
++ Actually `std::regex_match()` has several overloads, among which there is one to return the matched subexpressions:
+
+  ```c++
+  auto rx = std::regex{R"(^([A-Z0-9._%+-]+)@([A-Z0-9.-]+)\.([A-Z]{2,})$)"s};
+  auto result = std::smatch{}; 
+  auto success = std::regex_match(email, result, rx); 
+  ```
+
+  Note that three pairs of parentheses in the regular expressions, which indicates the subexpression needed to match. After calling `std::regex_match()`, the matching results can be queried from the `std::smatch`:
+
+  ```c++
+  cout << result[0].str() << endl;  // the entire expression
+  cout << result[1].str() << endl;  // subexpression 1
+  cout << result[2].str() << endl;  // subexpression 2 
+  cout << result[3].str() << endl;  // subexpression 3
+  ```
+
+### 2.10  Parsing the content of a string using regular expressions
+
++ Just like `std::regex_match()`, we can use `std::regex_search()` to parse the content of a string:
+
+  ```c++
+  auto match = std::smatch{}; 
+  if (std::regex_search(text, match, rx)) { 
+      std::cout << match[1] << '=' << match[2] << std::endl;
+  }
+  ```
+
++ However, `std::regex_search()` just performs a one-time search, i.e. it won't iterate over the string to find all substrings that match. To solve this, we could use `std::sregex_iterator` or `std::sregex_token_iterator`:
+
+  ```c++
+  auto end = std::sregex_iterator{}; 
+  for (auto it = std::sregex_iterator{ std::begin(text), std::end(text), rx }; 
+      it != end; ++it) { 
+      std::cout << (*it)[1] << '=' << (*it)[2] << std::endl; 
+  }
+  ```
+
+### 2.11  Replacing the content of a string using regular expressions
+
++ Use `std::regex_replace()` to replace the content of a string. The parameters of it are as follows:
+
+  + the input string on which the replacement will be performed,
+  + a `std::basic_regex` that is used to match against,
+  + the string format that is used to replace,
+  + and some flags.
+
+  ```c++
+  auto text{ "bancila, marius"s }; 
+  auto rx = std::regex{ R"((\w+),\s*(\w+))"s }; 
+  auto newtext = std::regex_replace(text, rx, "$2 $1"s);
+  ```
+
++ The last two parameters are worth mentioning. The string format can use a match identifier to indicate a substring. e.g. `$1` means the first subexpression matched, `$&` means the entire match, `$'` means the substring after the last match and so on.
+
+  And as the last parameter, the flags can be something like `std::regex_constants::format_first_only`, which means *just replace once*.
+
+### 2.12  Using string_view instead of constant string references
+
++ C++17 introduces `std::string_view`, which is a **non-owning** (doesn't manage lifetime of the data) **constant** (cannot modify) reference to a string, to solve the problem of performance cost due to temporary string objects.
+
+  `std::string_view` provides interfaces which are almost the same with `std::string` so typically we can almost always replace `const std::string &` with `std::string_view` unless a `std::string` is indeed needed.
+
++ Essentially `std::string_view` just holds a **pointer** to the start position of the character sequence and a **length** of it. 
+
+  It provides `remove_prefix()` and `remove_suffix()` methods to resize the range.
+
++ `std::string_view` can be constructed from a `std::string` and vice versa.
+
+## Chapter 3  Exploring Functions
+
+### 3.1  Defaulted and deleted functions
+
++ `=default;` can be applied to special class member functions while `=delete;` can be applied to any function.
+
+  ```c++
+  template <typename T> 
+  void run(T val) = delete; 
+  
+  void run(long val) {}  // can only be called with long integers
+  ```
+
++ About the rules of auto generation of special class member functions, see *[Item 17, Effective Modern C++](http://gusabary.cn/2020/05/22/Effective-Modern-C++-Notes/Effective-Modern-C++-Notes(3)-Moving-to-Modern-C++/#Item-17-Understand-special-member-function-generation)*.
+
+### 3.2  Using lambdas with standard algorithms
+
++ Essentially lambdas are syntactic sugar of unnamed function objects, whose copy and move constructor and destructor are defaulted and assign operators are deleted.
+
++ Note that lambda cannot (but I had a try, it seems not the case?) capture variables with static storage duration (i.e. variables defined in namespace scope or with `static` specifier).
+
+  And also, lambda cannot capture `this` by reference.
+
++ Lambdas have several kinds of specifier such as `mutable`, `constexpr` and so on.
+
+### 3.3  Using generic lambdas
+
++ Generic lambdas have `auto` as its parameters, which is essentially a function object with a template as `operator()`:
+
+  ```c++
+  [](auto const s, auto const n) { return s + n; };
+  
+  // is syntactic sugar to
+  struct __lambda_name__ 
+  { 
+      template<typename T1, typename T2> 
+      auto operator()(T1 const s, T2 const n) const { return s + n; } 
+  
+      __lambda_name__(const __lambda_name__&) = default; 
+      __lambda_name__(__lambda_name__&&) = default; 
+      __lambda_name__& operator=(const __lambda_name__&) = delete; 
+      ~__lambda_name__() = default; 
+  };
+  ```
+
+### 3.4  Writing a recursive lambda
+
++ Lambdas can also be recursive (even though it's rarely used):
+
+  ```c++
+  std::function<int(int const)> lfib = [&lfib](int const n) { 
+      return n <= 2 ? 1 : lfib(n - 1) + lfib(n - 2); 
+  }; 
+  auto f10 = lfib(10); 
+  ```
+
++ There are some points to mention since the lambda itself is captured by reference:
+
+  + `std::function` needs to be used here instead of `auto` because it's required that compiler knows the type of the lambda when capturing it;
+  + the lambda itself cannot be captured by value, because at the time of capture, the lambda is an incomplete type yet, whose `operator()` will throw a `std::bad_function_call` when invoked.
+
+##### Last-modified date: 2020.11.5, 8 p.m.
