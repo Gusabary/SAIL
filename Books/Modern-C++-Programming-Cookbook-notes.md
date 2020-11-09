@@ -513,4 +513,76 @@
   + `std::function` needs to be used here instead of `auto` because it's required that compiler knows the type of the lambda when capturing it;
   + the lambda itself cannot be captured by value, because at the time of capture, the lambda is an incomplete type yet, whose `operator()` will throw a `std::bad_function_call` when invoked.
 
-##### Last-modified date: 2020.11.5, 8 p.m.
+### 3.5  Writing a function template with a variable number of arguments
+
++ Before C++11, we can only write some functions accepting a variable number of arguments with **variadic macros** (something related to `va_list`, `va_begin`, `va_end`, etc.) and there is no way to create classes with variable number of members.
+
+  While after C++11, both can be done with **variadic templates**.
+
++ One thing worth noting is that we can use `std::cout << __PRETTY_FUNCTION__ << std::endl` to get the signature of a function with its substituted template parameters:
+
+  ```c++
+  template<typename T>
+  void f(T t) {
+      std::cout << __PRETTY_FUNCTION__ << std::endl;
+      // void f(T) [with T = int]
+  }
+  ```
+
+### 3.6  Using fold expressions to simplify variadic function templates
+
++ Fold expressions, which is introduced since C++17, essentially applies a binary function to a range of values to produce a single result. Basically it has four forms:
+
+  + `(... op pack)`
+  + `(init op ... op pack)`
+  + `(pack op ...)`
+  + `(pack op ... op init)`
+
+  If the ellipses appears in the left of `pack`, it means a left-folding (like `((1+2)+3)`) and with `init`, it's allowed to provide an initial value.
+
+### 3.7  Implementing higher-order functions map and fold
+
++ A higher function is one that takes other functions as parameters and applies them to a range of values. Some common examples of higher-order functions include **map** and **fold**.
+
++ Map is to say apply a transform function to a range and produce a new range of data, which can be implemented with `std::transform()`.
+
+  Fold is to say apply a combining function to a range and produce a single result, which can be implemented with `std::accumulate()` or variadic templates.
+
+### 3.8  Composing functions into a higher-order function
+
++ A fancy application of variadic template is to create **composed** functions:
+
+  ```c++
+  template <typename F, typename G> 
+  auto compose(F&& f, G&& g) {  
+      return [=](auto x) { return f(g(x)); }; 
+  }
+  
+  template <typename F, typename... R> 
+  auto compose(F&& f, R&&... r) { 
+      return [=](auto x) { return f(compose(r...)(x)); }; 
+  }
+  ```
+
+  Now we could use `compose()` to compose functions into a single one:
+
+  ```c++
+  auto n = compose( 
+      [](int const n) {return std::to_string(n); }, 
+      [](int const n) {return n * n; }, 
+      [](int const n) {return n + n; }, 
+      [](int const n) {return std::abs(n); }
+  )(-3);  // n = "36"
+  ```
+
+  And we can even overload the `operator*` to write like `f * g` instead of  `compose(f, g)`.
+
+### 3.9  Uniformly invoking anything callable
+
++ Callable has many forms such as function pointer, functor and lambda. It's convenient for library writers to invoke them in a uniformed way, and `std::invoke()` comes in C++17.
++ Actually, `std::invoke()` can not only invoke a callable, but also get the value of a data member. To be more precise,  suppose `std::invoke()` has form of `std::invoke(f, arg1, arg2...)`,
+  + if `f` is a pointer to a member function, then `arg1` is treated like `this` pointer;
+  + if `f` is a pointer to a data member, then there should be only a single `arg1` (no more `argN`) and it's treated like `this`, whose `f` member is the return value;
+  + if `f` is other callable, then this call to `std::invoke()` is equivalent to `f(arg1, arg2...)`
+
+##### Last-modified date: 2020.11.9, 8 p.m.
