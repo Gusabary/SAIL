@@ -585,4 +585,213 @@
   + if `f` is a pointer to a data member, then there should be only a single `arg1` (no more `argN`) and it's treated like `this`, whose `f` member is the return value;
   + if `f` is other callable, then this call to `std::invoke()` is equivalent to `f(arg1, arg2...)`
 
-##### Last-modified date: 2020.11.9, 8 p.m.
+## Chapter 4  Preprocessor and Compilation
+
+### 4.1  Conditionally compiling your source code
+
++ Use `#if` (`#ifdef`, `#ifndef`), `#elif`, `#else` and `#endif` to perform conditional compilation. Note that identifies checked by `#ifdef` can not only defined by `#define`, but also `-D` command line option when compiling.
+
++ Compilers predefine some macros indicating the compiler and platform like `__GNUG__`, `__amd64__` and so on.
+
++ `defined` operator can be used in `#if` and `#elif` directives: 
+
+  ```c++
+  #if defined(a)  // equivalent to #ifdef a
+  #if !defined(a)  // equivalent to #ifndef a
+  ```
+
+### 4.2  Using the indirection pattern for preprocessor stringification and concatenation
+
++ The **stringification** is to turn the argument of a function-like macro into string with `operator#`. The **concatenation** is to concatenate two arguments of a function-like macro together with `operator##`.
+
+  The **indirection pattern** is to say that we'd better not just define a single function-like macro. Instead we should wrap it with another macro:
+
+  ```c++
+  // stringification
+  #define _MAKE_STR(x) #x
+  #define MAKE_STR(x) _MAKE_STR(x)
+  
+  // concatenation
+  #define _MERGE(x, y)  x##y
+  #define MERGE(x, y) _MERGE(x, y)
+  ```
+
++ So why? Here is the point: arguments of function-like macro are expanded (if they are also macros) first before they are substituted into the macro body, **except that they are preceded by `#` or `##`, or followed by `##`**. Consider this example:
+
+  ```c++
+  #define _MAKE_STR(x) #x
+  #define MAKE_STR(x) _MAKE_STR(x)
+  
+  #define NUMBER 42 
+  std::string s3 { MAKE_STR(NUMBER) };    // s3 = "42"
+  std::string s4 { _MAKE_STR(NUMBER) };   // s4 = "NUMBER" 
+  ```
+
+  For `MAKE_STR(NUMBER)`, the `NUMBER` is expanded to `42` first before substituted because in macro `MAKE_STR`, `x` is not preceded by `#` or `##`, or followed by `##`, and then the argument for `_MAKE_STR` is already `42`. But for `_MAKE_STR(NUMBER)`, it's not the case. `x` in `_MAKE_STR` is preceded by `#` so the argument won't be expanded and the result is `"NUMBER"`.
+
+### 4.3  Performing compile-time assertion checks with static_assert
+
++ Use `static_assert`, which is introduced in C++11, to perform compile-time assertion check:
+
+  ```c++
+  static_assert(condition, message)
+  ```
+
+  in which `condition` should be convertible to a bool value at compile time and `message` should be a string literal.
+
++ We can use `static_assert` in **namespace**, **class** and **block** (function) scope to check like whether the template arguments meet some requirements or whether a type has expected size:
+
+  ```c++
+  struct alignas(8) item { 
+      int    id; 
+      bool   active; 
+      double value;
+  }; 
+  static_assert(sizeof(item) == 16, "size of item must be 16 bytes");
+  
+  template <typename T> 
+  class pod_wrapper { 
+      static_assert(std::is_pod<T>::value, "POD type expected!"); 
+      T value; 
+  };
+  ```
+
+### 4.4  Conditionally compiling classes and functions with enable_if
+
++ When talking about `std::enable_if`, we need to know what *SFINAE* is (aha, I know). Generally speaking, when compilers encounter a function call, it will build a set of possible overloads and then select the best match, in which process the *SFINAE* principle takes effect. To be more precise, when an overload is found inappropriate to be a candidate (substitution failure), the compiler will just count it out of the overload set instead of throwing an error. (What really leads to an error is an empty overload set)
+
++ Actually the implementation of `std::enable_if` is extremely simple:
+
+  ```c++
+  template<bool Test, class T = void> 
+  struct enable_if {}; 
+  
+  template<class T> 
+  struct enable_if<true, T> { 
+      typedef T type; 
+  };
+  ```
+
+  By contrast the usage of `std::enable_if` is a little bit verbose:
+
+  ```c++
+  template<typename T, 
+      typename = typename std::enable_if<std::is_integral<T>::value, T>::type
+  > 
+  auto mul(T const a, T const b) { 
+      return a * b; 
+  }
+  ```
+
++ One thing worth noting is that we can use **dummy template parameter** to create more than one overloads with type preconditions and avoid redefinition error:
+
+  ```c++
+  template <typename T, 
+      typename = typename std::enable_if<std::is_integral<T>::value, T>::type
+  >
+  auto compute(T const a, T const b) { 
+      return a * b; 
+  } 
+  
+  template <typename T, 
+      typename = typename std::enable_if<!std::is_integral<T>::value, T>::type, 
+      typename = void
+  > 
+  auto compute(T const a, T const b) { 
+      return a + b; 
+  }
+  ```
+
+### 4.5  Selecting branches at compile time with constexpr if
+
++ C++17 introduces constexpr if `if constrexpr`, which can select branches at compile time. It can be used to simplify the code written with `std::enable_if`:
+
+  ```c++
+  template <typename T> 
+  auto compute(T const a, T const b) { 
+      if constexpr (std::is_integral<T>::value) 
+          return a * b; 
+      else  
+          return a + b; 
+  }
+  ```
+
+  *recall the problem dgy encountered in 2020.7.20: how to "specialize" a method of a class template*
+
++ Return statements in discarded constexpr if branches won't contribute to the deduction of return type.
+
+### 4.6  Providing metadata to the compiler with attributes
+
++ C++11 provides a standard way (instead of something like `__attribute__((...))` in gcc or `__declspec()` in vc++) to provide metadata to the compiler: **attributes**.
++ Attributes are wrapped by two pairs of brackets like `[[attr]]`. They can work on almost everything: type, function, variable, or even translation unit.
++ Here are some useful attributes:
+  + `[[noreturn]]` indicates a function does not return;
+  + `[[nodiscard]]` indicates return value of the function shouldn't be discarded (i.e. should be assigned to a variable)
+  + `[[deprecated("reason")]]` indicates that the entity is deprecated and shouldn't be used any longer.
+
+## Chapter 5  Standard Library Containers, Algorithms and Iterators
+
+### 5.1  Using vector as a default container
+
++ Use `std::vector` as the default container unless there is a good reason to use another one. That's because `std::vector` has many benefits, among which it's compatible with C-like arrays (just invoking `data()` method to get the address of the first element)
++ One thing worth noting is that the capacity expansion sounds time-consuming, but actually each element can be regarded as moved just once due to the exponential expansion policy. Clearly speaking, you have four elements, here comes the fifth one and it needs to find a larger space, which can contain eight elements. So we can say space for another four elements is acquired after a move of four elements, which is a one-on-one relationship.
+
+### 5.2  Using bitset for fixed-size sequences of bits
+
++ `std::bitset` can be used for a fixed-size sequence of bits, whose template parameter is the size.
+
++ `std::bitset` can be converted from integral type and string with its constructors and converted to them with its methods:
+
+  ```c++
+  std::bitset<8> b2{ 10 };  // [0,0,0,0,1,0,1,0]
+  std::bitset<8> b3{ "1010"s };  // [0,0,0,0,1,0,1,0]
+  
+  b2.to_ulong();  // 10
+  b3.to_string();  // "00001010"
+  ```
+
++ Bits in `std::bitset` can be tested by some methods like `any()`, `all()`, `none()`, `test()` and so on, and can be modified by something like `flip()`, `set()` and `reset()`. Also, `std::bitset` supports operation like `|`, `&` and `^`.
+
+### 5.3  Using `vector<bool>` for variable-size sequences of bits
+
++ `std::vector<bool>` is essentially a specialization of `std::vector<T>` with speed and space optimization: **it store a single bit instead of a bool value (1 byte) for each element**.
+
+  However, it also brings some drawbacks like the element cannot be referenced, and its iterator cannot be used as a forward iterator:
+
+  ```c++
+  std::vector<bool> bv;
+  bv.resize(10);
+  auto& bit = bv[0];      // error
+  ```
+
++ If you don't want such optimization, `std::deque<bool>` might be a good choice.
+
+### 5.4  Finding elements in a range
+
++ [STL Algorithms](http://gusabary.cn/2020/03/14/C++STL%E4%B8%AD%E7%9A%84Algorithm/) provides many generic functions to find elements in a range, most of which has return value of the end iterator to indicate the not found result.
+
+### 5.5  Sorting a range
+
++ When using sorting function provided by STL Algorithms, pass in a functor to customize your own compare function:
+
+  ```c++
+  std::vector<int> v{3, 13, 5, 8, 1, 2, 1};
+  std::sort(v.begin(), v.end());  // v = {1, 1, 2, 3, 5, 8, 13}
+  std::sort(v.begin(), v.end(), std::greater<>());  // v = {13, 8, 5, 3, 2, 1 ,1}
+  ```
+
++ `std::is_sort()` can be used to check whether a range of elements is already sorted.
+
++ Some containers like `std::list` provide `sort()` as their methods, which should be preferred to the `std::sort()`.
+
+### 5.6  Initializing a range
+
++ STL Algorithms also provide a series of functions to fill (initialize) elements in a range. Most basically, we can use `std::fill` to fill a range with a given value and `std::generate` to fill a range with the return value of a given callable. (The callable accepts no parameter. If you want to use the original value in the container, resort to `std::transform`) 
+
+  And also, we can use `std::iota` to fill a range with sequentially increasing values (actually it's the `operator++` that gets invoked).
+
+### 5.7  Using set operations on a range
+
++ Note that set operations like `std::set_union`, `std::set_intersection`, `std::set_difference` and so on should be used on sorted containers (not necessarily a set, vector is ok as long as it's sorted)
+
+##### Last-modified date: 2020.11.11, 8 p.m.
