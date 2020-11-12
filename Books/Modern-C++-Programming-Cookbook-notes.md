@@ -794,4 +794,110 @@
 
 + Note that set operations like `std::set_union`, `std::set_intersection`, `std::set_difference` and so on should be used on sorted containers (not necessarily a set, vector is ok as long as it's sorted)
 
-##### Last-modified date: 2020.11.11, 8 p.m.
+### 5.8  Using iterators to insert new elements in a container
+
++ When using some STL Algorithms like `std::fill_n` to insert a range of elements into a container, we couldn't use some *common* iterators. For example, we couldn't use the iterator returned by `std::begin()`, because the following fill operation will overwrite the existing elements rather than insert. And we also couldn't use the iterator returned by `std::end()`, because the compiler will complain something about out of range error.
+
+  Yep, we can resort to the *insert iterators*, i.e. iterators returned by `std::back_inserter()`, `std::front_inserter()` and `std::inserter()`.
+
+  ```c++
+  std::vector<int> v{ 1, 2, 3, 4, 5 };
+  std::fill_n(std::inserter(v, std::next(v.begin(), 2)), 3, 0);
+  // 1, 2, 0, 0, 0, 3, 4, 5
+  ```
+
++ They are all **output iterators** and increasing or dereferencing these iterators actually do nothing. However, upon assignment, they will invoke some methods of the container separately:
+
+  + `push_back()` for `std::back_insert_iterator`,
+  + `push_front()` for `std::front_insert_iterator`,
+  + `insert()` for `std::insert_iterator`.
+
+  So this places some limits to containers that insert iterators can work on. e.g. `std::back_insert_iterator` doesn't apply for `std::forward_list` because it doesn't have `push_bakc()` method. For the same reason. `std::front_insert_iterator` doesn't apply for `std::vector`.
+
++ Note that these insert iterators are preferred when inserting a **range** of elements instead of a single one. For the latter situation, `push_back()`, `push_front()` and `insert()` methods are certainly the first choice.
+
+### 5.9  Writing your own random access iterator
+
++ From input iterators to random-access iterators, more functionalities are supported:
+  + Common requirements of all iterators: copy-constructible, copy-assignable, destructible and can be incremented.
+  + Input iterators: support equality comparison and can be dereferenced as rvalue.
+  + Output iterators: can be dereferenced as lvalue.
+  + Forward iterators: can be default constructed and support multi-pass iteration.
+  + Bidirectional iterators: can be decremented.
+  + Random-access iterator: support arithmetic operation, offset dereference operator (`[]`) and inequality comparison (`<`, `>=` and so on).
++ For more details, refer to *[the iterator doc](http://www.cplusplus.com/reference/iterator/)*.
+
+### 5.10  Container access with non-member fucntions
+
++ Non-member functions about the STL container access don't only include `std::begin()` and `std::end()`, but also `std::data()`, `std::size()` and `std::empty()` as of C++17.
+
++ The implement logic is simple: if the container has methods of `begin()` and `end()`, just invoke them. If it's not the case, implement a specialization for it (such as the C-style array)
+
+  ```c++
+  template<class C>
+  constexpr auto inline begin(C& c) -> decltype(c.begin()) {
+      return c.begin();
+  }
+  
+  template<class T, std::size_t N>
+  constexpr T* inline begin(T (&array)[N]) {
+      return array;
+  }
+  ```
+
+## Chapter 6  General Purpose Utilities
+
+### 6.1  Expressing time intervals with chrono::duration
+
++ C++11 provides a `chrono` library to deal with data and time. It mainly consists of three components: **durations** which represents a time interval, **time pointes** which represents a period of time since the epoch of a clock and **clock** which defines an epoch (start of time) and a tick rate.
+
++ **Duration** is essentially a class template, whose template parameters are the underlying type of the tick and the kind of the tick represented by `std::ratio` (ratio to the unit of second). For example, the standard library has defined some types for us:
+
+  ```c++
+  namespace std {
+      namespace chrono {
+          typedef duration<long long, ratio<1, 1000000000>> nanoseconds;
+          typedef duration<long long, ratio<1, 1000000>> microseconds;
+          typedef duration<long long, ratio<1, 1000>> milliseconds;
+          typedef duration<long long> seconds;
+          typedef duration<int, ratio<60>> minutes;
+          typedef duration<int, ratio<3600>> hours;
+      }
+  }
+  ```
+
++ Remember C++14 brings us some user-defined literals? Yep, `std::chrono_literals` are included. With the help of them, we can define duration like below:
+
+  ```c++
+  using namespace std::chrono_literals;
+  auto half_day         = 12h;
+  auto half_hour        = 30min;
+  auto half_minute      = 30s;
+  auto half_second      = 500ms;
+  auto half_millisecond = 500us;
+  auto half_microsecond = 500ns;
+  ```
+
++ Duration with lower precision can be converted implicitly to one with higher precision while duration with higher precision should use `std::chrono::duration_cast` to convert to one with lower precision.
+
+  Also, we can use `count()` method to retrieve the number of ticks.
+
+### 6.2  Measuring function execution time with a standard clock
+
++ Use the concept of **clock** and **time points** to measure function execution time:
+
+  ```c++
+  auto start = std::chrono::high_resolution_clock::now();
+  func();
+  auto diff = std::chrono::high_resolution_clock::now() - start;
+  ```
+
++ `std::chrono::time_point` is essentially a class template, whose template parameters are clock and duration (you can consider that *time_point = clock + duration*)
+
+  And a clock defines two things: the epoch and tick rate.
+
++ There are three kinds of clocks: `system_clock`, `high_resolution_clock` and `steady_clock`. They are different in terms of precision and steady attribute.
+
+  If a clock is **steady**, it means it's never adjusted, i.e. the difference between two time pointes is always positive as time passes. When measuring the function execution time, we should always use steady clocks.
+
+##### Last-modified date: 2020.11.12, 8 p.m.
