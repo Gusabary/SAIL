@@ -900,4 +900,155 @@
 
   If a clock is **steady**, it means it's never adjusted, i.e. the difference between two time pointes is always positive as time passes. When measuring the function execution time, we should always use steady clocks.
 
-##### Last-modified date: 2020.11.12, 8 p.m.
+### 6.3  Generating hash values for custom types
+
++ We know that `std::unordered_*` containers use hash table to store values, which requires the underlying type has corresponding hash function.
+
+  To be more precise, only types which have specialization of `std::hash` class can be used as template argument of `std::unordered_*`. The standard has specialized it for all basic types and some common used types like `std::string`. When we want to use custom types, it needs to specialize for it manually:
+
+  ```c++
+  namespace std {
+      template<>
+      struct hash<Item> {
+          typedef Item argument_type;
+          typedef size_t result_type;
+  
+          result_type operator()(argument_type const & item) const {
+              result_type hashValue = 17;
+              hashValue = 31 * hashValue + std::hash<int>{}(item.id);
+              hashValue = 31 * hashValue + std::hash<std::string>{}(item.name);
+              hashValue = 31 * hashValue + std::hash<double>{}(item.value);
+              return hashValue;
+          }
+      };
+  }
+  ```
+
++ Note that `std::hash` is essentially a functor template, whose `operator()` returns the same result for the same arguments and has a very small chance to return the same value for non-equal arguments.
+
+  Here the **non-equal** doesn't necessarily means comparing all fields because some fields don't play a role in the `operator==`. So when calculating hash values, we just need to consider those fields that will determine whether two objects are equal.
+
++ One thing worth noting is that, we choose `31` as the multiplier. That is because `31*x` can be replaced with `(x<<5)-x`, which is advantageous for performance optimization. Other choices can be `127` and `8191`.
+
+### 6.4  Using std::any to store any value
+
++ C++17 introduces `std::any` to store a value of any type, just like `Object` in JavaScript.
+
++ To store a value into `std::any`, use its constructor or assign operator:
+
+  ```c++
+  std::any value(42); // integer 12
+  value = 42.0;       // double 12.0
+  value = "42"s;      // std::string "12"
+  ```
+
++ To read a value from `std::any`, use `std::any_cast`. Note that it can throw `std::bad_any_cast`:
+
+  ```c++
+  std::any value = 42.0;
+  try {
+      auto d = std::any_cast<double>(value);
+      std::cout << d << std::endl;
+  }
+  catch (std::bad_any_cast const & e) {
+      std::cout << e.what() << std::endl;
+  }
+  ```
+
++ Use `type()` method to check type of the stored value (if no, return `void`) and use `has_value()` method to check whether there is a stored value:
+
+  ```c++
+  inline bool is_integer(std::any const & a) {
+      return a.type() == typeid(int);
+  }
+  ```
+
+### 6.5  Using std::optional to store optional values
+
++ C++17 introduces `std::optional` to store an optional value that may exist or not.
+
++ To store a value into `std::optional`, use its constructor and assign operator:
+
+  ```c++
+  std::optional<int> v1;      // v1 is empty
+  std::optional<int> v2(42);  // v2 contains 42
+  v1 = 42;                    // v1 contains 42
+  std::optional<int> v3 = v2; // v3 contains 42
+  ```
+
++ To read a value from `std::optional`, use `operator*` (`operator->`) or `value()` (`value_or()`) method. The difference is that when the optional is empty, behavior of the former is undefined while the latter will throw a `std::bad_option_access`.
+
++ Use `has_value()` method to check if the optional is empty.
+
++ The common use case of `std::optional` is to be the return value indicating failure when empty.
+
+### 6.6  Using std::variant as a type-safe union
+
++ C++17 introduces `std::variant` to store a value whose type is in a type set (a little bit like union)
+
++ To store a value into `std::variant`, use its constructor, assign operator or `emplace()` method:
+
+  ```c++
+  struct foo {
+      int value;
+      explicit foo(int const i) : value(i) {}
+  };
+  
+  std::variant<int, std::string, foo> v = 42; // holds int
+  v.emplace<foo>(42);                         // holds foo
+  ```
+
++ To read a value from `std::variant`, use `std::get()` with template argument of index or type (if unique). If type of the stored value is not the specified one, a `std::bad_variant_access` will be thrown:
+
+  ```c++
+  std::variant<int, double, std::string> v = 42;
+  auto i1 = std::get<int>(v);
+  auto i2 = std::get<0>(v);
+  
+  try {
+      auto f = std::get<double>(v);
+  }
+  catch (std::bad_variant_access const & e) {
+      std::cout << e.what() << std::endl;  // Unexpected index
+  }
+  ```
+
++ Use `index()` method to retrieve index of the stored value and use `std::holds_alternatives()` to check whether the `std::variant` holds the specified type.
+
++ Note that `std::variant` is default initialized with its first alternative, so it needs to use `std::monostate`, which is an empty type intended to make variants default constructible, if otherwise the first type isn't default constructible.
+
+### 6.7  Visiting a std::variant
+
++ Use `std::visit()` to visit a `std::variant`, which is to do some operation potentially according to the alternative type.
+
++ The first parameter of `std::visit()` is a callable which takes a single parameter (so-called **visitor**). The callable is required to be able to accept any alternative type of the variants, so we can use `auto&&` or functor that overloads `operator()` for all alternative types.
+
+  And the following parameters are variants to be visited:
+
+  ```c++
+  // lambda
+  for (auto const & d : dvds) {
+      std::visit([](auto&& arg) {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, Movie>) {}
+          else if constexpr (std::is_same_v<T, Music>) {}
+          else if constexpr (std::is_same_v<T, Software>) {}
+      }, d);
+  }
+  
+  // functor
+  struct visitor_functor {
+      void operator()(Movie const & arg) const {}
+      void operator()(Music const & arg) const {}
+      void operator()(Software const & arg) const {}
+  };
+  for (auto const & d : dvds) {
+      std::visit(visitor_functor(), d);
+  }
+  ```
+
+  When visiting a variant, the visitor will be invoked with the currently stored value.
+
++ A visitor isn't necessarily a non-return callable. Instead it could return the type of the second parameter of `std::visit` (which is the variant). And it seems that when the visitor has return value, `std::visit` cannot take more than two parameters.
+
+##### Last-modified date: 2020.11.13, 9 p.m.
