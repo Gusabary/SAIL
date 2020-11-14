@@ -1051,4 +1051,47 @@
 
 + A visitor isn't necessarily a non-return callable. Instead it could return the type of the second parameter of `std::visit` (which is the variant). And it seems that when the visitor has return value, `std::visit` cannot take more than two parameters.
 
-##### Last-modified date: 2020.11.13, 9 p.m.
+### 6.8  Registering a function to be called when a program exits normally
+
++ Use `std::atexit()` and `std::at_quick_exit()` to register a function to be called when the program exits normally, which means returning from `main` function, `std::exit()` or `std::quick_exit()`.
+
+  The function registered takes no parameter and has no return value.
+
++ One thing worth noting is that the order of invocation of functions registered and destruction of static objects are reverse of that they are registered and constructed:
+
+  ```c++
+  std::atexit(exit_handler_1);
+  static_foo::instance();
+  std::atexit(exit_handler_2);
+  std::atexit([]() {std::cout << "exit handler 3" << std::endl; });
+  std::exit(42);
+  
+  // output:
+  // exit handler 3
+  // exit handler 2
+  // static foo destroyed!
+  // exit handler 1
+  ```
+
+### 6.9  Using type traits to query properties of types
+
++ There are two categories of type traits:
+
+  + query information about types like `std::is_void`, `std::is_same`, they have a static member called `value`;
+  + transform properties of types like `std::add_const`, `std::remove_pointer`, they have a `typedef` called `type`.
+
++ Typically type traits for querying type information are implemented with full or partial specialization mechanism. To be more precise, return false in primary template and return true in specialization:
+
+  ```c++
+  template <typename T> 
+  struct is_pointer 
+  { static const bool value = false; };
+  
+  template <typename T> 
+  struct is_pointer<T*> 
+  { static const bool value = true; };
+  ```
+
++ Type traits for querying can be used in many occasions such as `std::enable_if`, `static_assert`, `std::conditional` and constexpr if.
+
+##### Last-modified date: 2020.11.14, 7 p.m.
