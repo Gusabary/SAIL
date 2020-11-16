@@ -812,7 +812,7 @@
   + `push_front()` for `std::front_insert_iterator`,
   + `insert()` for `std::insert_iterator`.
 
-  So this places some limits to containers that insert iterators can work on. e.g. `std::back_insert_iterator` doesn't apply for `std::forward_list` because it doesn't have `push_bakc()` method. For the same reason. `std::front_insert_iterator` doesn't apply for `std::vector`.
+  So this places some limits to containers that insert iterators can work on. e.g. `std::back_insert_iterator` doesn't apply to `std::forward_list` because it doesn't have `push_bakc()` method. For the same reason. `std::front_insert_iterator` doesn't apply to `std::vector`.
 
 + Note that these insert iterators are preferred when inserting a **range** of elements instead of a single one. For the latter situation, `push_back()`, `push_front()` and `insert()` methods are certainly the first choice.
 
@@ -1094,4 +1094,76 @@
 
 + Type traits for querying can be used in many occasions such as `std::enable_if`, `static_assert`, `std::conditional` and constexpr if.
 
-##### Last-modified date: 2020.11.14, 7 p.m.
+### 6.10  Writing your own type traits
+
++ When writing your own type traits for querying, define the `value` field in type traits as `static constexpr`
+
+### 6.11  Using std::conditional to choose between types
+
++ Use `std::conditional` to choose between types at compile time. It takes three template parameters, the first one is a const bool expression at compile time and the following two are types to be chosen.
+
++ It can be implemented like this:
+
+  ```c++
+  template<bool _Cond, typename _Iftrue, typename _Iffalse>
+  struct conditional
+  { typedef _Iftrue type; };
+  
+  template<typename _Iftrue, typename _Iffalse>
+  struct conditional<false, _Iftrue, _Iffalse>
+  { typedef _Iffalse type; };
+  ```
+
+## Chapter 7  Working with files and streams
+
+### 7.4  Using I/O manipulators to control the output of a stream
+
++ Standard provides many helper functions called **manipulators** to control the input and output of a stream.
++ Listed here are some common used manipulators:
+  + `std::boolalpha` and `std::noboolalpha` to toggle the display of bool value between `true ` (`false`) and 1(0).
+  + `std::left` and `std::right` to affect the alignment of the output (usually cooperate with `std::setw`).
+  + `std::fixed`, `std::setprecision` and `std::defaultfloat` to affect the output of floating-point types.
+  + `std::dec`, `std::oct` and `std::hex` to change the base used for integral types.
+  + `std::setw` and `std::setfill` to format the output with some custom styles.
++ Note that all the manipulators except `std::setw` has an effect on the stream and all the following I/O operations until encountering another manipulator. (`std::setw` just affects the next single operation)
+
+## Chapter 8  Leveraging Threading and Concurrency
+
+## Chapter 9  Robustness and Performance
+
+### 9.1  Using exceptions for error handling
+
++ There are some recommended practice when dealing with exceptions:
+
+  + throw exceptions by value and catch it by reference (in most cases, const reference).
+  + arrange multiple catch statements in the order from most derived to the base, and `catch(...)` as the last one potentially.
+  + use `throw;` directly in the catch statement to rethrow the exception.
+
++ When we combine the concept of both exception and OOP, there is a key point to mention: Use exceptions to indicate errors in **constructors** and don't let exceptions leave **destructors**.
+
+  The reason is simple: when an exception occurs, **the stack is unwound from the point where the exception was thrown to the point where it will be handled**. This unwinding process involves destruction of all local objects in these stack frames. If the destructor of one object throws an exception, another unwinding process should begin, which conflicts the one already under way.
+
+  And one thing worth noting is that after an exception is thrown from the constructor, the destructor won't get invoked.
+
++ Standard library provides some exceptions like `std::logic_error`, `std::runtime_error` and `std::bad_*`, which are derived from `std::exception`.
+
+### 9.2  Using noexcept for functions that do not throw
+
++ C++11 introduces `noexcept` keyword, which can be used as either a **specifier** and an **operator**.
+
+  As a specifier, it applies to a function, indicating that function doesn't throw any exception. Optionally, `noexcept` can take a parameter which can be evaluated to a bool value. To be precise, `noexcept(true)` is equivalent to `noexcept` while `noexcept(false)` means no exception specification.
+
++ As an operator, it can be used to check whether a function is `noexcept` at compile time:
+
+  ```c++
+  void f() noexcept;
+  std::cout << noexcept(f()) << std::endl;  // 1
+  ```
+
+  Note that the expression used for check is **not evaluated**.
+
++ Be careful to specify a function as `noexcept`. On the one hand, if exceptions leave a function that is specified as `noexcept`, the program will exit immediately with a call to `std::terminate()`. On the other hand, a `noexcept` function can bring some performance optimizations.
+
+  For example, `push_back()` method of `std::vector` will use move constructor if it's `noexcept` since the method has a **strong exception guarantee** (which means the state of program will stay the same after an exception is thrown, i.e. commit-or-rollback semantic). And actually indicating that move constructors don't throw is an important scenario of `noexcept`.
+
+##### Last-modified date: 2020.11.16, 7 p.m.
