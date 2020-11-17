@@ -1166,4 +1166,71 @@
 
   For example, `push_back()` method of `std::vector` will use move constructor if it's `noexcept` since the method has a **strong exception guarantee** (which means the state of program will stay the same after an exception is thrown, i.e. commit-or-rollback semantic). And actually indicating that move constructors don't throw is an important scenario of `noexcept`.
 
-##### Last-modified date: 2020.11.16, 7 p.m.
+### 9.4  Creating compile-time constant expressions
+
++ `constexpr` can be used to create compile-time constant expressions. It can apply to variables, functions, constructors and so on.
++ When applying to variables, they should be [*literal type*](http://www.cplusplus.com/reference/type_traits/is_literal_type/) (e.g. `std::string` cannot be declared as `constexpr`).
++ When applying to functions, they are implicitly `inline` but not `const` since C++14.
++ When applying to constructors, we can potentially create `constexpr` objects of that class.
+
+## Chapter 10  Implementing Patterns and Idioms
+
+### 10.1  Avoiding repetitive if...else statements in factory methods
+
++ To avoid repetitive if...else statements in factory methods, we can certainly use polymorphism. However, there is another trick which uses a map:
+
+  ```c++
+  std::shared_ptr<Image> Create(std::string_view type) {
+      static std::map<std::string, std::function<std::shared_ptr<Image>()>> mapping {
+          { "bmp", []() {return std::make_shared<BitmapImage>(); } },
+          { "png", []() {return std::make_shared<PngImage>(); } },
+          { "jpg", []() {return std::make_shared<JpgImage>(); } }
+      };
+  
+      auto it = mapping.find(type.data());
+      if (it != mapping.end())
+          return it->second();
+      return nullptr;
+  }
+  ```
+
++ What's more, we can replace the hardcoded string indicating the type with `type_info`:
+
+  ```c++
+  std::shared_ptr<Image> Create(std::type_info const & type) {
+      static std::map<std::type_info const *, std::function<std::shared_ptr<Image>()>> mapping {
+          {&typeid(BitmapImage),[](){return std::make_shared<BitmapImage>();}},
+          {&typeid(PngImage),   [](){return std::make_shared<PngImage>();}},
+          {&typeid(JpgImage),   [](){return std::make_shared<JpgImage>();}}
+      };
+      
+      auto it = mapping.find(&type);
+      if (it != mapping.end())
+          return it->second();
+      return nullptr;
+  }
+  
+  factory.Create(typeid(PngImage));
+  ```
+
+### 10.2  Implementing the pimpl idiom
+
++ Pimpl idiom, which stands for **pointer to implementation**, is a technique for better separation between interface and implementation, to my understanding.
+
+  Typically, putting interfaces in header files and implementations in source files is already a practice of separation of them. However, when we change some internal state (like private members), the header still needs to recompile although the change is transparent to the client. Now with pimpl idiom, we can move *almost* all these internal state to another class called **pimpl class** and in the original **public class**, just leave interfaces to avoid recompilation when modifying such internal state.
+
+  Practically, public class has all the interfaced defined and a pointer to pimpl class. All the implementations of public class method forward to pimpl class.
+
++ However, the benefits of pimpl idiom doesn't come for free. It's more difficult to read of course. And also, it cannot apply to protected members and private virtual functions.
+
+### 10.3  Implementing the named parameter idiom
+
++ C++ supports only positional parameters (some other language also supports named parameter like Python but C++ is still the best programming language!!). However we can implement named parameter technique on our own.
+
++ To implement that, we need to create a class dedicated for the parameter passing, whose methods share the same name with parameter name and, the most important, return value is the reference to itself (`return *this`). So we can construct the argument list like a chain:
+
+  ```c++
+  control c(control_properties(1044).visible(true).height(20).width(100));
+  ```
+
+##### Last-modified date: 2020.11.17, 8 p.m.
