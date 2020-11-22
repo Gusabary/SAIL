@@ -1233,4 +1233,103 @@
   control c(control_properties(1044).visible(true).height(20).width(100));
   ```
 
-##### Last-modified date: 2020.11.17, 8 p.m.
+### 10.4  Separating interfaces and implementations with the non-virtual interface idiom
+
++ Non-virtual interface (NVI) idiom is to make all public interfaces non-virtual and private implementations virtual. Essentially it adds an indirection for better separation and control of interfaces:
+
+  ```c++
+  class Base {
+  protected:
+      virtual void initialize_impl() {}
+  public:
+      void initialize() {
+          initialize_impl();
+      }
+  };
+  
+  class Derived : public Base {
+  protected:
+      virtual void initialize_impl() {}
+  };
+  ```
+
+### 10.5  Handling friendship with the attorney-client idiom
+
++ If a function or class is declared as **friend** of another class, all private members of it will be exposed to its friend, which is not always what we want. This can be handled by attorney-client idiom, which make it possible to expose part of private members to friends. The principle is very simple: another indirection, which is called **attorney**:
+
+  ```c++
+  class Client {
+      int data_1;
+      int data_2;
+      void action1() {}
+      void action2() {}
+      friend class Attorney;
+  };
+  
+  class Attorney {
+      static inline void run_action1(Client& c) {
+          c.action1();
+      }
+      static inline int get_data1(Client& c) {
+          return c.data_1;
+      }
+      friend class Friend;
+  };
+  
+  class Friend {
+  public:
+      void access_client_data(Client& c) {
+          Attorney::run_action1(c);
+          auto d1 = Attorney::get_data1(c);
+      }
+  };
+  ```
+
+### 10.6  Static polymorphism with the curiously recursive template pattern
+
++ Polymorphism based on virtual functions are called runtime polymorphism or late binding. We can simulate it at compile time with static polymorphism (or early binding), using the mechanism **curiously recursive template pattern (CRTP)**:
+
+  ```c++
+  template <class T>
+  class Base {
+  public:
+      void draw() {
+          static_cast<T*>(this)->paint();
+      }
+  };
+  
+  class Derived : public Base<Derived> {
+  public:
+      void paint() {}
+  }
+  ```
+
++ Note that there is a pitfall when using CRTP: different derived classes with the same base (e.g. `Base<A>` and `Base<B>`) have different types (unlike the runtime polymorphism) so we cannot store them in a homogeneous container such as vector or list. Of course there is a workaround: inherit the base class from another class and use that *base-base* class as the template argument of the container.
+
+### 10.7  Implementing a thread-safe singleton
+
++ After C++11, the compiler guarantees that objects with static storage will be initialized only once. Remember [the threes ways to initialize objects thread-safely in *Section 2.2, Concurrency with Modern C++*](http://gusabary.cn/2020/10/30/Concurrency-with-Modern-C++-Notes/Concurrency-with-Modern-C++-Notes-2/#2-2-Shared-Data)?
+
+  So implementing a thread-safe singleton is quite easy. We can even combine it with CRTP introduced in last section to create a generic singleton base class:
+
+  ```c++
+  template <class T>
+  class SingletonBase {
+  protected:
+      SingletonBase() {}
+  public:
+      SingletonBase(SingletonBase const &) = delete;
+      SingletonBase& operator=(SingletonBase const&) = delete;
+      static T& instance() {
+          static T single;
+          return single;
+      }
+  };
+  
+  class Single : public SingletonBase<Single> {
+      Single() {}
+      friend class SingletonBase<Single>;
+  };
+  ```
+
+##### Last-modified date: 2020.11.22, 3 p.m.
