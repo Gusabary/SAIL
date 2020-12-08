@@ -466,4 +466,50 @@
     + 返回值是对象类型的右值引用（`type&&`）的函数调用是 xvalue；
     + 返回值是非引用类型（`type`）的函数调用是 prvalue。
 
-##### Last-modified date: 2020.10.11, 11 p.m.
+## Appendix C  Overload Resolution
+
++ 站在一个 high-level 的角度，处理一个函数调用往往包含以下几步：
+
+  + 进行 function name lookup 以确定一个 initial overload set
+  + 调整这个 overload set，比如模板参数推断和替换
+  + 剔除任何参数列表不匹配的 overload（即使考虑了隐式转换和默认参数之后也不匹配），这一步的产物称为 viable function candidates
+  + 进行 overload resolution，如果结果只有一个，就调用它；如果有多个结果，则 ambiguous
+  + 检查这个 selected candidate，例如是不是 deleted，或者是不是 private
+
++ 在进行 overload resolution 的时候，如果一个 candidate 比另一个 candidate 要好，那么对于其每一个形参而言，都要比另一个 candidate 的每一个形参更能匹配实参。至于如何衡量参数的匹配程度，有一系列规则（从上到下匹配程度递减）：
+
+  + perfect match：类型完全一致，或者仅有 cvr qualifier 的区别
+  + match with minor adjustments：例如 decay，或者 `int *` 和 `const int *`
+  + match with promotion：所谓 promotion 可以理解成小类型转到大类型（比如 `short` 转 `int`，`float` 转 `double`）
+  + match with standard conversions only：包含 standard conversion（例如 `int` 转 `float`）以及子类转父类
+  + match with user-defined conversions：例如类中定义的 conversion operator
+  + match with ellipsis：形参为省略号，以匹配任意类型
+
+  需要注意的是 overload resolution 这一步发生在模板参数推断和替换之前，考虑这样一个例子：
+
+  ```c++
+  template<typename T>
+  class MyString {
+  public:
+    MyString(T const*);  // converting constructor
+  };
+  
+  template<typename T>
+  MyString<T> truncate(MyString<T> const&, int);
+  
+  MyString<char> str1, str2;
+  str1 = truncate<char>("Hello World", 5);  // OK
+  str2 = truncate("Hello World", 5);        // ERROR
+  ```
+
+  模板参数的推导发生在选择隐式转换匹配的 candidate 之前。
+
++ 当调用类（比如类 `A`）的方法时，一般第一个形参为 `A&`，如果该方法是 const，则第一个形参为 `const A&`，如果该方法有 `&&` 后缀，则第一个形参为 `A&&`。
+
++ 当两个 candidate 匹配程度相同时，优先选择 non-template function 而非 instance of a function template，如果两个 candidate 都是模板实例，那么选择更加 specialized 的那个。
+
++ implicit conversion 可以是一串 conversion 的组合，但是其中 user-defined conversion 只能出现一次，而且这一串组合中，converison 的次数越少，认为匹配程度越高。
+
++ 在转换指针类型的时候，优先级最低的是 `bool`，其次是 `void *`，当转型发生在继承链上时，转到越 derived 的类优先级越高（准确的说是，在继承链上待转型的类的运行时刻类型上方，最靠下的类优先级最高）
+
+##### Last-modified date: 2020.12.8, 9 p.m.
