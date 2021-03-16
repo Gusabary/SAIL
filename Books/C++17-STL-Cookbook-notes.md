@@ -107,4 +107,65 @@
 
   In another word, it can be considered that because `ts` is a pack, the whole `set.insert(ts).second` also becomes a pack.
 
-##### Last-modified date: 2020.12.15, 10 a.m.
+## Chapter 2  STL Containers
+
++ **erase-remove idiom**: `std::remove` just move around elements in the container and return the **new end iterator** so we need to invoke `erase` method again to erase in fact those elements after the new end iterator:
+
+  ```c++
+  v.erase(remove_if(begin(v), end(v), odd), end(v));
+  ```
+
++ if the order of a vector doesn't matter, when deleting an item by index or iterator, we can overwrite it with the last item and then erase the last one, so the deletion is O(1)
+
++ compared to `operator[]`, we can use `at` method to perform bound check, and the price is a negligible performance loss.
+
++ use `lower_bound` to get the right position for a new item in a sorted container and then perform insertion to keep it always sorted
+
++ after C++17, we can use `try_emplace` method of map to **try** inserting an entry into a map, that's to say, if the key exists, the inserted object won't be constructed, which saves really much time for us, compared to old `insert` and `emplace`.
+
++ `insert` method of map provides an overload which takes an iterator as a hint to denote the position where the inserted item should be. If the hint is correct (this can be easily checked through whether the newly inserted item and the hint is direct neighbor), insertion performance can be improved.
+
++ it's a fact that type of key in a map is const, so we cannot directly change it. However, after C++17, map supports `extract` method to extract (remove and get) a node from map, whose `key` method returns a non-const reference to key of the node. so we can modify that and then reinsert it to map without any performance penalty (especially heap allocation)
+
++ actually `std::unordered_map`'s complete definition is:
+
+  ```c++
+  template<
+      class Key,
+      class T,
+      class Hash      = std::hash<Key>,
+      class KeyEqual  = std::equal_to<Key>,
+      class Allocator = std::allocator< std::pair<const Key, T> >
+  > class unordered_map;
+  ```
+
+  if `Key` is a custom type, we can provide `Hash` in two ways:
+
+  + specialize `std::hash` for our type
+  + specify `Hash` template parameter explicitly
+
++ `std::istream_iterator` takes a template parameter as token type and a `std::istream` as the source stream. it supports two operations: 1) `*it` to get the current token from the stream (equivalent to `cin >>`) and 2) `++it` to jump to next token.
+
+  `std::insert_iterator` performs kinda like iterator but when assigning value to the element it points to, it *inserts* a new value.  use `std::inserter` to get a `std::insert_iterator`, it takes two arguments: the container and the iterator pointing to where the new element should be inserted.
+
+  ```c++
+  set<string> s;
+  istream_iterator<string> it {cin};
+  istream_iterator<string> end;
+  copy(it, end, inserter(s, s.end()));
+  ```
+
++ move entries in a map into a vector for sorting by value instead of key:
+
+  ```c++
+  map<string, size_t> words;
+  vector<pair<string, size_t>> word_counts;
+  word_counts.reserve(words.size());
+  move(begin(words), end(words), back_inserter(word_counts));
+  ```
+
+  use `back_inserter` here because `std::vector` has only `push_back` but no `push_front`.
+
++ `std::priority_queue` is also an container adapter, which wraps on `std::vector` by default. and priority queue is logically implemented by heap.
+
+##### Last-modified date: 2021.3.16, 11 p.m.
