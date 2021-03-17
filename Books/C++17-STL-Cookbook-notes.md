@@ -186,4 +186,25 @@
 
   range in C++20 can make cpp code more function-programming like.
 
-##### Last-modified date: 2021.3.17, 9 p.m.
+## Chapter 4  Lambda Expressions
+
++ since C++14, we can initialize new variables in the capture list like this:
+
+  ```c++
+  [count = 0] () mutable { return ++count; }
+  ```
+
++ lambda without capturing any variable has the same (more precisely, not the complete same, just convertible) type with corresponding function pointer, but those which has non-empty capture list cannot be represented by function pointer:
+
+  ```c++
+  int a;
+  std::vector<void (*)(int)> v;
+  v.push_back([](int) {});    // ok
+  v.push_back([a](int) {});   // error
+  ```
+
+  so `std::function` comes into play.
+
++ std library has provided some logical conjunction functor for us like `std::logical_and<>`.
+
+##### Last-modified date: 2021.3.17, 11 p.m.
