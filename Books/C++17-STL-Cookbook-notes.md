@@ -168,4 +168,22 @@
 
 + `std::priority_queue` is also an container adapter, which wraps on `std::vector` by default. and priority queue is logically implemented by heap.
 
-##### Last-modified date: 2021.3.16, 11 p.m.
+## Chapter 3  Iterators
+
++ it's recommended to declare constructor which create a type from another type as explicit to avoid implicit type conversion.
+
++ to make our own iterators compatible with STL algorithm, we need to activate **iterator trait** functionality for it, i.e. specialize `std::iterator_traits` for our own iterator class and populate some type definitions like `iterator_category`, `value_type` and so on.
+
++ something like `std::insert_iterator` and `std::istream_iterator` is called **iterator adapter**, it can wrap an object into an iterator which can perform some special operation on the object when dereferenced, assigned, increased or whatever.
+
++ use `std::make_reverse_iterator` to get `rbegin` from `end`.
+
++ since C++17, there is no constraint that `begin` and `end` iterator should be the same type in range-based loop syntactic sugar, so we can use a **iterator sentinel** as end iterator when it's not that easy to determine a real end iterator.
+
++ gcc (and clang) provides some sanitizers to check whether STL iterators are correctly used. enable these sanitizers by passing some flags during compilation.
+
++ `std::valarray` (since C++98) supports element-wise mathematical operations.
+
+  range in C++20 can make cpp code more function-programming like.
+
+##### Last-modified date: 2021.3.17, 9 p.m.
