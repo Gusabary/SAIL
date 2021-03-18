@@ -229,4 +229,9 @@
 
 + C++17 provides a `std::sample` to sample limited number of elements from a long container.
 
-##### Last-modified date: 2021.3.18, 9 p.m.
+## Chapter 6  Advanced Use of STL Algorithms
+
++ `logical_not` just negates a variable (i.e. `!var`) while `not_fn` creates a new function whose return value is always reversed compared to the original function. in a word, these two are completely different.
++ `std::unique` **remove** repetitive adjacent elements in a container by default, note that a ***erase-remove* idiom** is needed when invoking `std::unique`.
+
+##### Last-modified date: 2021.3.18, 11 p.m.
