@@ -207,4 +207,26 @@
 
 + std library has provided some logical conjunction functor for us like `std::logical_and<>`.
 
-##### Last-modified date: 2021.3.17, 11 p.m.
+## Chapter 5  STL Algorithm Basics
+
++ by default, `std::is_sorted` will return false for vector with descending elements like 3, 2, 1.
+
++ we can provide comparison function whose signature has form like `bool(const T&, const T&)` as the third argument of `sort` algorithm. note that this function shouldn't have any side effect.
+
++ `std::remove` and `std::replace` algorithms have their `_copy` counterpart which leave the source container unaltered.
+
++ `std::copy` and `std::transform` could have source iterator and destination one of different types. e.g. copy elements to stdout:
+
+  ```c++
+  copy(begin(vs), end(vs), ostream_iterator<string>{cout, "\n"});
+  ```
+
++ `std::binary_search` and `std::equal_range` (also `std::lower_bound` and `std::upper_bound`) use binary search on the container so the elements are required to be sorted.
+
++ `std::minmax_element` and `std::clamp` can be useful.
+
++ since C++17, we can provide **searcher** for `std::search` algorithm, which might bring some performance improvement.
+
++ C++17 provides a `std::sample` to sample limited number of elements from a long container.
+
+##### Last-modified date: 2021.3.18, 9 p.m.
