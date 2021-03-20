@@ -234,4 +234,40 @@
 + `logical_not` just negates a variable (i.e. `!var`) while `not_fn` creates a new function whose return value is always reversed compared to the original function. in a word, these two are completely different.
 + `std::unique` **remove** repetitive adjacent elements in a container by default, note that a ***erase-remove* idiom** is needed when invoking `std::unique`.
 
-##### Last-modified date: 2021.3.18, 11 p.m.
+## Chapter 7  Strings, Stream Classes, and Regular Expressions
+
++ `std::basic_*stream`s are templates that can be specialized for different character types and `std::*stream`s are those specialized for `char` 
+
++ `iostream` inherits from `istream` and `ostream`, so it combines both input and output capabilities.
+
++ there are two ways to initialize a string:
+
+  ```c++
+  string a { "a"  };
+  auto   b ( "b"s );
+  ```
+
+  note that the former C-style one embeds the string literal in the binary and then copy it to construct a string while the latter creates a string on the fly.
+
++ in order to **reference** the underlying string instead of copying, we can use `string_view`:
+
+  ```c++
+  string_view c { "c"   };
+  auto        d ( "d"sv );
+  ```
+
++ we cannot assume `string_view` is null-terminated.
+
++ `std::string::npos` is equal to `size_t(-1)`, which is a very large number
+
++ use `s >> std::ws` to filter out the leading whitespaces when reading a stream
+
++ `cin >> x`'s result can be converted into a bool value which indicates whether the reading is successful, if not, we can use `cin.clear()` and `cin.ignore()` methods to recover `cin` to normal working state.
+
++ stream object has an internal buffer which can be accessed and altered with `rdbuf()` method.
+
++ actually `basic_string` has three template parameters: the first is character type, the second is **char_traits** and the third is allocator. char_traits determines some behavior of the string, e.g. how the strings copy or compare. so we can inherit from `std::char_traits` and customize our own string type.
+
++ stream format flags (affected by manipulator) can be accessed and altered with `flags()` method
+
+##### Last-modified date: 2021.3.20, 4 p.m.
