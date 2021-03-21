@@ -270,4 +270,29 @@
 
 + stream format flags (affected by manipulator) can be accessed and altered with `flags()` method
 
-##### Last-modified date: 2021.3.20, 4 p.m.
+## Chapter 8  Utility Classes
+
++ C++17's structural binding (for unpack tuple) is very useful though, we can use `std::apply` to not only unpack a tuple easily but then invoke a callable with the variables just unpacked automatically.
+
++ we can provide a custom deleter for `unique_ptr` and `shared_ptr`. however for `unique_ptr`, this will change its type because the deleter type is the second template parameter of `unique_ptr` while for `shared_ptr` it's not the case: `shared_ptr`s with different deleters still share the same type, that's because `shared_ptr` hides this information in the control block. while `unique_ptr` promises to be overhead free at runtime so it has no such control block.
+
++ we can event create a `shared_ptr` pointing to a member instead of the entire object:
+
+  ```c++
+  auto sperson (make_shared<person>("John Doe", 30));
+  auto sname   (shared_ptr<string>(sperson, &sperson->name));
+  ```
+
+  in such case, `sname` also contributes to the reference counter of the `*sperson` object.
+
++ to generate a random value, we first need to construct a random number generator (engine), and then just call it as a callable. At the most time, `std::default_random_engine` is enough.
+
++ to get a series of data shaped by some distributions, we can first construct a distribution and then invoke it with a random number engine to get a shaped value.
+
+  ```c++
+  auto distro = uniform_int_distribution<int>{0, 9};
+  default_random_engine e;  // can seed the engine here also, e.g. e{random_device{}()};
+  auto randome_value = distro(e);
+  ```
+
+##### Last-modified date: 2021.3.21, 4 p.m.
