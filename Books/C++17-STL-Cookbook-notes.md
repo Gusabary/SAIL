@@ -304,4 +304,16 @@
 + use `std::call_once` to ensure that a specific function will only be executed once.
 + when using `std::async` with `std::launch::async` policy, note that the returned `future` from `async` call will block at its destructor, so if you write something like `async(launch::async, f)` without save its value, it will actually block here until execution of `f` completes.
 
-##### Last-modified date: 2021.3.22, 1 p.m.
+## Chapter 10  Filesystem
+
++ with C++17 filesystem library, traverse a directory is extremely simple:
+
+  ```c++
+  for (const directory_entry &e : directory_iterator{dir}) {
+      // do something
+  }
+  ```
+
+  instead, use `recursive_directory_iterator` to traverse recursively to subdirectories.
+
+##### Last-modified date: 2021.3.22, 3 p.m.
