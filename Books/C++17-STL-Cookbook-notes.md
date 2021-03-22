@@ -295,4 +295,13 @@
   auto randome_value = distro(e);
   ```
 
-##### Last-modified date: 2021.3.21, 4 p.m.
+## Chapter 9  Parallelism and Concurrency
+
++ since C++17, some STL algorithms add an overload which takes an execution policy as the first parameter. there are three policies in `std::execution` namespace: `sequenced_policy`, `parallel_policy` and `parallel_unsequenced_policy`. the first two is easy to understand while the third one allows for vectorization, which is kinda like loop unrolling.
++ use `time` command to measure how long a binary ran for.
++ when it comes to modern C++ locking, there are two kinds of classes: `mutex` and `lock` (`lock_guard<mutex>`, the simplest).
++ `scoped_lock` can take multiple mutexes in its constructor, which could be used to avoid deadlock.
++ use `std::call_once` to ensure that a specific function will only be executed once.
++ when using `std::async` with `std::launch::async` policy, note that the returned `future` from `async` call will block at its destructor, so if you write something like `async(launch::async, f)` without save its value, it will actually block here until execution of `f` completes.
+
+##### Last-modified date: 2021.3.22, 1 p.m.
