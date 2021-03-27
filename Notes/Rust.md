@@ -113,7 +113,7 @@
 
   actually the first parameter here `&self` can also be `self`, `mut self` or `&mut self`, and it doesn't need to specify the type explicitly because compiler knows the type is struct type.
 
-+ when we invoke methods, we write like `p1.distance(&p2);` directly instead of `(&p1).distance(&p2);` or `->` like cpp, because rust supports automatic referencing and dereferencing, and calling methods is a scenario where this behavior applies.
++ when we invoke methods, we write like `p1.distance(&p2);` directly instead of `(&p1).distance(&p2);` or `->` like cpp, because rust supports **automatic referencing and dereferencing**, and calling methods is a scenario where this behavior applies.
 
 + define associated functions (aka. static methods) by not writing `self` parameter.
 
@@ -438,3 +438,186 @@
 
 + Do the library crate (`src/lib.rs`) and binary crate (`src/main.rs`) have the same crate name?
 + What is blanket implementation?
++ why is it not allowed that multiple mutable references exist at the same time?
++ what's trait `?Sized`
+
+## Rust By Example Notes
+
++ `ToString` trait (which defines `to_string` method) is implemented automatically for those types which implements `Display` trait:
+
+  ```rust
+  impl<T> ToString for T
+  where
+      T: Display + ?Sized, 
+  { /* ... */ }
+  ```
+
+  *[reference](https://stackoverflow.com/questions/27769681/should-i-implement-display-or-tostring-to-render-a-type-as-a-string)*
+
++ **borrow** means taking a reference of an object (without transfering ownership) `println!`-like macros just borrows the object (although we don't write `&` explicitly).
+
+### Custom Types
+
++ use `std::mem::size_of` to get size of a type, note that the invocation should look like `size_of::<MyType>()` (that's so called **turbofish**). (`typeof` is reserved to get type of an object, but it's not implemented yet)
+
+  and `std::mem::size_of_val` could be applied on an object instead of a type.
+
++ `(5u32,)` is a single-element tuple while `(5u32)` is just an integer.
+
++ arrays can be automatically borrowed as slices:
+
+  ```rust
+  fn analyze_slice(slice: &[i32]) {
+      println!("first element of the slice: {}", slice[0]);
+      println!("the slice has {} elements", slice.len());
+  }
+  
+  analyze_slice(&[1, 2, 3]);
+  analyze_slice(&[1, 2, 3][0..2]);
+  ```
+
++ struct could also be destructured:
+
+  ```rust
+  struct S {
+      x: i32,
+      y: i32,
+  }
+  
+  let s = S { x: 1, y: 2 };
+  let S { x, y } = s;
+  ```
+
+  and the destructuring can even be nested.
+
++ ```rust
+  enum E {
+      EA(S),
+      EB
+  }
+  
+  match e {
+      E::EA(s) => {},  // s has type S
+      E::EB => {}
+  }
+  
+  match &e {
+      E::EA(s) => {},  // s has type &S
+      E::EB => {}
+  }
+  
+  match e {
+      E::EA(ref s) => {},  // s has type &S
+      E::EB => {}
+  }
+  ```
+
++ use `type Alias = i64` to give a type an alias, note that the alias is not a new type so different alias of a type share the same type also.
+
+### Conversion
+
++ primitive types can be converted to each other through `as`-keyword casting, while custom types need `From` and `Into` traits.
+
++ after implementing `From` trait for our type like
+
+  ```rust
+  impl From<i32> for Number {
+      fn from(item: i32) -> Self {
+          Number { value: item }
+      }
+  }
+  ```
+
+  we get this for free:
+
+  ```rust
+  let num: Number = 5.into();
+  ```
+
++ `TryFrom` and `TryInto` returns a `Result` instead of the object after conversion directly.
+
++ to convert an object to `String`, we need `ToString` trait, which is automatically provided if implement `Display` trait; to convert `String` to an object, we need `parse` method from `FromStr` trait, and integral type has implemented that.
+
+  ```rust
+  let turbo_parsed = "10".parse::<i32>().unwrap();
+  ```
+
+  note that `parse` method supports turbofish syntax while `into` method doesn't.
+
+### Expressions
+
++ there are mainly two kinds of statements in Rust: variable binding with `let` and expression plus a `;`.
+
+  blocks are expression, they are evaluated to the last expression in the block, if the last one is a statement, the block evaluates to `()`.
+
+### Flow of Control
+
++ inner loops could `break` and `continue` outer loops with loop labels:
+
+  ```rust
+  'outer: loop {
+      'inner: loop {
+          break 'outer;
+      }
+  }
+  ```
+
++ range notation `a..b` creates an iterator on the range `[a, b)` and `a..=b` creates `[a, b]`.
+
++ to convert a collection into iterators, there are three alternatives: `into_iter()`, `iter()` and `iter_mut()`, whose names are self-explanatory.
+
++ reference could be created at assigner side (right side of `=`) with `&` and also assignee side with `ref` keyword
+
+  ```rust
+  let ref a = &3;  // a is &&i32
+  ```
+
++ when using `match` guard, compiler doesn't check the guard expression for whether all possible conditions have been covered, so in the last arm, `_` is needed.
+
++ `if let a = b` reads *if `b` could be destructured as `a`* (there is also a `while let`)
+
+### Functions
+
++ `&self` in the method argument is just a sugar for `self: &Self`.
+
++ when the closure captures variables, it follows this order (more and more stricter):
+
+  + by reference: `&T`
+  + by mutable reference: `&mut T`
+  + by value: `T`
+
+  i.e. if capturing by reference is enough, it won't capture by mutable reference, not to mention capture by value
+
+  we can force the closure to capture by value by adding a `move` keyword before `||`
+
++ when passing a closure as argument of a function. its type could be annotated through trait bound like:
+
+  ```rust
+  fn apply<F>(f: F) where
+      F: FnOnce() {
+      f();
+  }
+  ```
+
+  there are three kinds of such trait: `Fn`, `FnMut` and `FnOnce`. there relationship is kinda like
+
+  ```
+  <-------------------Fn-------------------> (&T)
+         <-----------FnMut-----------> (&mut T)
+              <-----FnOnce-----> (T)
+  
+  ```
+
+  that's to say, `Fn` is the most strict (a little bit counterintuitive, hah), which just applies to those closures which capture all variables by reference while `FnOnce` applies to all three kinds of closures.
+
++ Question: Do all functions (not closures) implement `Fn` trait? (since functions don't capture any variable)
+
++ closures could be returned from functions, but they must be denoted with `move` because captured variables won't have valid references out of function scope. So the function returning closures could be `Fn`, `FnMut` or `FnOnce`.
+
++ `into_iter()` for arrays unusually yields references.
+
++ diverging functions are those which never return (e.g. due to `panic!`),  actually their return type is marked as `!`, which could be cast to any other type.
+
+
+
+ 
