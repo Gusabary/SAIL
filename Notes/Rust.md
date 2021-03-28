@@ -437,8 +437,13 @@
 ## Q & A
 
 + Do the library crate (`src/lib.rs`) and binary crate (`src/main.rs`) have the same crate name?
+
+  yes. (see section 7.1, *the Book*) actually, if you take a look at `target/debug` dir under the project, you will find that the binary crate is built into an executable `proj` (assuming that the package name is `proj`) while the library crate is built into a library `libproj.rlib`.
+
 + What is blanket implementation?
+
 + why is it not allowed that multiple mutable references exist at the same time?
+
 + what's trait `?Sized`
 
 ## Rust By Example Notes
@@ -617,6 +622,104 @@
 + `into_iter()` for arrays unusually yields references.
 
 + diverging functions are those which never return (e.g. due to `panic!`),  actually their return type is marked as `!`, which could be cast to any other type.
+
+### Modules, Crates and Cargo
+
++ **A crate is a compilation unit in Rust.** when running `rustc a.rs`, `a.rs` is treated as a crate file. mod declarations like `mod b;` will find the corresponding file (`b.rs` or `b/mod.rs`) and insert the content of that module file into where the mod declaration is found.
++ if using `rustc`, add `--extern` option to link with an extern lib crate.
++ cargo may run multiple tests concurrently, so mind the potential race condition.
+
+### Attributes
+
++ `#![attribute]` applies to the whole crate while `#[attribute]` applies to a module or item.
+
++ `#[cfg]` attribute enables conditional compilation, e.g.:
+
+  ```rust
+  #[cfg(target_os = "linux")]
+  ```
+
+  while the `cfg!` macro supports check in run-time:
+
+  ```rust
+  if cfg!(target_os = "linux") {}
+  ```
+
++ pass `--cfg` option to `rustc` to add definitions for conditional compilation. e.g. when running `cargo test`, I guess `--cfg test` is added so modules annotated by `#[cfg(test)]` will get compiled.
+
+### Generics
+
++ items from traits can only be used if the trait is in scope. so if we want to invoke a method defined in a trait (e.g. `m::TR`), we need to use that trait first to bring it into scope (`use m::TR;`)
+
+  this can explain the `rand::Rng` wondering in the chap.2, *the Book*
+
++ inside the trait, we can declare some associated items such as types (with `type` keyword, but not alias semantic) and override them in following `impl` blocks.
+
+### Scoping rules
+
++ `Drop` trait should be implemented if a custom destructor is needed.
+
++ mutability of data can be changed after transferring the ownership:
+
+  ```rust
+  let immutable_box = Box::new(5u32);
+  let mut mutable_box = immutable_box;
+  ```
+
++ pattern bindings can take both by-reference and by-move forms:
+
+  ```rust
+  let Person { name, ref mut age } = person;
+  ```
+
+  *so-called pattern bindings take place when using `if let`, `match` and other destruction operations.*
+
+  if we bind by reference and move at the same time, **partial move** will happen, which means part of the object is moved so we can no longer use the object as a whole, but still the unmoved part of the object:
+
+  ```rust
+  println!("{}", person);       // value borrowed here after partial move
+  println!("{}", person.name);  // value borrowed here after move
+  println!("{}", person.age);   // ok
+  ```
+
++ `ref` keyword can be used only during pattern matching and destruction (most with `let` keyword) so it's not completely alternative to `&`.
+
+#### lifetime specifier
+
++ the lifetime specifier specifies what the lifetime of a reference **should be**. it can apply to both functions and custom types, which will be explained below.
+
++ lifetime specifier on **functions** connects the relationship of parameters and return value in terms of lifetime.
+
+  and lifetime specifier which is not constrained (only appears at return value) defaults to `'static`.
+
++ lifetime specifier on fields of **struct or enum** means the field must outlive the struct or enum:
+
+  ```rust
+  struct Borrowed<'a>(&'a i32);
+  
+  enum Either<'a> {
+      Num(i32),
+      Ref(&'a i32),
+  }
+  ```
+
++ lifetime can be bounded as well like `T: 'a`, which means the parameter of type `T` must outlive `'a`.
+
++ owned data always passes a `'static` bound while a reference generally doesn't:
+
+  ```rust
+  fn f(input: impl Debug + 'static) {}
+  let i = 5;
+  print_it(i);  // ok
+  print_it(&i); // err
+  ```
+
++ in a short word, the *lifetime elision rules* is to say that under such conditions you can emit lifetime specifier of reference parameter and return value:
+
+  + the function is a method, which means the first parameter is `&self` or `&mut self`, then return value has the same lifetime with it
+  + the function has only one parameter, then return value has the same lifetime with it as well.
+
+
 
 
 
