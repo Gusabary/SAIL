@@ -719,8 +719,49 @@
   + the function is a method, which means the first parameter is `&self` or `&mut self`, then return value has the same lifetime with it
   + the function has only one parameter, then return value has the same lifetime with it as well.
 
+### Traits
 
++ **The Rust compiler needs to know how much space the function's return type requires**, so if we want to return a trait `TR`, we cannot directly write like `-> TR`. instead, wrap it with a `Box` whose size is know at compile time.
 
+  What's more, calls to the `TR` trait object are dynamically dispatched (recall the virtual table), so it needs to be highlighted by a `dyn` keyword. that's why the return value should be `Box<dyn TR>`
 
++ **operators are syntactic sugar for method calls**, `a + b` is actually `a.add(b)`. so we can implement different `Add<A>` traits for different type `B` to overload the addition operator.
 
- 
++ `drop` method from `Drop` trait could also be manually invoked.
+
++ to implement `Iterator` trait on a custom type, we only need to define `next` method.
+
++ if the size of return type is known at compile time but the type itself cannot be written out (like closure) or concisely expressed, `impl Trait` as return type can be used.
+
+  note that this is different from returning a `Box<dyn trait>`, which actual return type is not known until run-time.
+
++ to enable copy (stack-only) on a type, we need to derive both `Clone` and `Copy` trait for it.
+
++ although there is no inheritance in Rust, you can define a trait as a superset of another trait, which is called *supertraits*:
+
+  ```rust
+  trait A {}
+  trait B: A {}
+  ```
+
++ use fully qualified syntax to avoid disambiguating:
+
+  ```rust
+  <Type as Trait>::function(receiver_if_method, next_arg, ...);
+  ```
+
+### Macros
+
++ declarative macros are defined with `macro_rules!` while procedural macros are kinda like functions operating on `TokenStream` defined in `proc_macro` crate. we will focus on the former.
+
+### Error handling
+
++ `Option` provides `map` method to map `Option<T>` to `Option<U>` by applying a function to the contained value whose type is `T`.
+
+  It also provides `and_then` method to apply a function to the contained value and then return it (whose type is `U` now) without wrapping it with `Option`.
+
++ `Result` is a richer version of `Option` that describes possible errors instead of only possible absence.
+
++ `Result` could also be return type of `main`, in which condition, an error message will printed if `Error` is returned.
+
+##### Last-modified date: 2021.3.29, 8 p.m.
