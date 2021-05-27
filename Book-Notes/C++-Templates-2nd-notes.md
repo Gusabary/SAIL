@@ -401,6 +401,114 @@
 
 + 在定义类模板时，有时会因为对模板的类型参数应用了某些 type traits 而使得其只能是 complete type，这减少了该类模板的应用场景（比如 struct 中有字段为指向该 struct 的指针时，该 struct 就是一个 incomplete type）。为了解决这一问题，可以将应用 type traits 的方法重写为函数模板，这样求值的过程被推迟到了类型参数成为 complete type 以后。
 
+## Chapter 12  Fundamentals in Depth
+
+### declarations
+
++ C++ currently supports four kinds of templates:
+
+  | namespace scope   | class scope                     |
+  | ----------------- | ------------------------------- |
+  | class template    | nested class template           |
+  | function template | member function template        |
+  | variable template | **static** data member template |
+  | alias template    | member alias template           |
+
+  now templates are not allowed to be defined in function scope or local class scope.
+
++ member function templates cannot be declared virtual.
+
++ unlike ordinary class types, class templates cannot shared the name with a different kind of entity:
+
+  ```c++
+  template <typename T>
+  struct S {};
+  
+  int S; // error
+  ```
+
++ templates cannot have C linkage:
+
+  ```c++
+  extern "C" template <typename T>
+  void f(); // error
+  ```
+
+  I think that's because there is no function overload in C (due to no name mangling)
+
++ Normal declarations of templates declare **primary templates**. such templates has no type attached after the template name:
+
+  ```c++
+  template <typename T>
+  class A;  // primary template
+  
+  template <typename T>
+  class A<T*>;  // for partial speicialization
+  ```
+
+  function templates must always be primary templates. I think that's because partial speicialization can be achieved by overload:
+
+  ```c++
+  template <typename T>
+  void f(T);
+  
+  template <typename T>
+  void f(T*);
+  ```
+
+###  template parameters
+
++ there are three basic kinds of template parameters: type parameters, nontype parameters and template template parameters, among which type parameters are the most common.
+
+  nontype parameters can be integers, enums, pointers and so on. when they are arrays and function pointers, they will decay. What's interesting is that non-reference nontype parameters are regarded as **prvalue** while a nontype parameter of lvalue reference can be used to denote an **lvalue**:
+
+  ```c++
+  template <int& T>
+  struct S {
+      S() { T = T + 1; }
+  };
+  
+  int a = 1;
+  int main()
+  {
+      std::cout << a << std::endl;  // 1
+      S<a>{};  // the template argument here must have 'linkage'
+      std::cout << a << std::endl;  // 2
+  }
+  ```
+
+  I have an explanation about the nontype parameter of non-reference and reference:
+
+  + for non-reference, like an `int`, you need to guarantee the value of the `int` is known at compile time;
+  + for reference, like an `int&`, you need to guarantee the address (reference mechanism leverages pointer) of the template argument is known at compile time. that's why the argument should have **linkage**, even if it's not `constexpr`.
+
+  so cool
+
++ template template parameters are those who themselves are templates:
+
+  ```c++
+  template <
+      template <typename> typename Container
+  >
+  struct S {
+      Container<int> a;
+  };
+  
+  S<std::vector> s;
+  ```
+
+  the cool thing is that it can be nested.
+
++ template parameter pack can be formed by all three basic kinds of template parameters above. In common case, the pack should appear as the last parameter in the list and only once. however there is some special case that pack can appear multiple times and not at the last position. for example, function templates and partial specializations for class or variable templates:
+
+  ```c++
+  template<unsigned...> struct Tensor;
+  template<unsigned... Dims1, unsigned... Dims2>
+  auto compose(Tensor<Dims1...>, Tensor<Dims2...>);
+  ```
+
++ paremeter pack and parameters for partial specialization cannot have default template argument
+
 ## Appendix B  Value Categories
 
 + **表达式**有类型（type），也有值类别（value category）。在 C++11 之前，值类别只有 lvalue（左值）和 rvalue（右值）两种。考虑这样一个场景：
